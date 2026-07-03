@@ -1,0 +1,29 @@
+# Env / secrets
+.env
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Data / artifacts
+data/uploads/
+backend/app/services/cost_model/*.pkl
+backend/app/services/cost_model/*.json
+!backend/app/services/cost_model/training_config.json
+evaluation/reports/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

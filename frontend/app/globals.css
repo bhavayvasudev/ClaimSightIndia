@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-fog;
+  }
+
+  html {
+    overflow-x: clip;
+  }
+
+  body {
+    @apply bg-white font-sans text-carbon antialiased;
+    letter-spacing: -0.02em;
+    font-feature-settings: "clig" 1, "liga" 1;
+    overflow-x: clip;
+  }
+
+  ::selection {
+    background: #918df6;
+    color: #ffffff;
+  }
+}

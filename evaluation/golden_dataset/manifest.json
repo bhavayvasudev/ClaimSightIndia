@@ -1,0 +1,4 @@
+{
+  "description": "Golden dataset manifest. Each entry names a claim directory under evaluation/golden_dataset/claims/ containing the input bundle (vehicle.jpg, damage_*.jpg, policy.pdf, description.txt) plus expected_output.json — the ground-truth ClaimTriageReport fields an agent-level metric script diffs against.",
+  "claims": []
+}
