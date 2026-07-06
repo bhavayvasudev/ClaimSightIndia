@@ -1,0 +1,2834 @@
+{
+  "version": 1,
+  "manufacturers": [
+    {
+      "id": "maruti-suzuki",
+      "name": "Maruti Suzuki",
+      "status": "active",
+      "models": [
+        {
+          "id": "800",
+          "name": "800",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "alto-800",
+          "name": "Alto 800",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "alto",
+          "name": "Alto K10",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "zen",
+          "name": "Zen",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "zen-estilo",
+          "name": "Zen Estilo",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "wagonr",
+          "name": "WagonR",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ritz",
+          "name": "Ritz",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "swift",
+          "name": "Swift",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "dzire",
+          "name": "Dzire",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [
+            "Swift Dzire"
+          ],
+          "variants": []
+        },
+        {
+          "id": "baleno",
+          "name": "Baleno",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sx4",
+          "name": "SX4",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ciaz",
+          "name": "Ciaz",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "s-cross",
+          "name": "S-Cross",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "brezza",
+          "name": "Brezza",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [
+            "Vitara Brezza"
+          ],
+          "variants": []
+        },
+        {
+          "id": "grand-vitara",
+          "name": "Grand Vitara",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "jimny",
+          "name": "Jimny",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ertiga",
+          "name": "Ertiga",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xl6",
+          "name": "XL6",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "celerio",
+          "name": "Celerio",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ignis",
+          "name": "Ignis",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "omni",
+          "name": "Omni",
+          "category": "Commercial Vehicle",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "eeco",
+          "name": "Eeco",
+          "category": "Commercial Vehicle",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "esteem",
+          "name": "Esteem",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "gypsy",
+          "name": "Gypsy",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "fronx",
+          "name": "Fronx",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "invicto",
+          "name": "Invicto",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "hyundai",
+      "name": "Hyundai",
+      "status": "active",
+      "models": [
+        {
+          "id": "santro",
+          "name": "Santro",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "i10",
+          "name": "i10",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "grand-i10",
+          "name": "Grand i10",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "grand-i10-nios",
+          "name": "Grand i10 Nios",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "i20",
+          "name": "i20",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "elite-i20",
+          "name": "Elite i20",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "verna",
+          "name": "Verna",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "accent",
+          "name": "Accent",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sonata",
+          "name": "Sonata",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "elantra",
+          "name": "Elantra",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "creta",
+          "name": "Creta",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "N Line",
+            "Knight"
+          ]
+        },
+        {
+          "id": "venue",
+          "name": "Venue",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "N Line"
+          ]
+        },
+        {
+          "id": "tucson",
+          "name": "Tucson",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "santa-fe",
+          "name": "Santa Fe",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "alcazar",
+          "name": "Alcazar",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "exter",
+          "name": "Exter",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "aura",
+          "name": "Aura",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xcent",
+          "name": "Xcent",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "getz",
+          "name": "Getz",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "terracan",
+          "name": "Terracan",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ioniq-5",
+          "name": "Ioniq 5",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "tata-motors",
+      "name": "Tata Motors",
+      "status": "active",
+      "models": [
+        {
+          "id": "indica",
+          "name": "Indica",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "indigo",
+          "name": "Indigo",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "indigo-cs",
+          "name": "Indigo CS",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "vista",
+          "name": "Vista",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "bolt",
+          "name": "Bolt",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "zest",
+          "name": "Zest",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "tiago",
+          "name": "Tiago",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "tigor",
+          "name": "Tigor",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "altroz",
+          "name": "Altroz",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "punch",
+          "name": "Punch",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "nexon",
+          "name": "Nexon",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "harrier",
+          "name": "Harrier",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "Dark Edition"
+          ]
+        },
+        {
+          "id": "safari",
+          "name": "Safari",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "Dark Edition"
+          ]
+        },
+        {
+          "id": "safari-storme",
+          "name": "Safari Storme",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sumo",
+          "name": "Sumo",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sumo-grande",
+          "name": "Sumo Grande",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "aria",
+          "name": "Aria",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "hexa",
+          "name": "Hexa",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "nano",
+          "name": "Nano",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "curvv",
+          "name": "Curvv",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "winger",
+          "name": "Winger",
+          "category": "Commercial Vehicle",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "mahindra",
+      "name": "Mahindra",
+      "status": "active",
+      "models": [
+        {
+          "id": "scorpio",
+          "name": "Scorpio",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "scorpio-n",
+          "name": "Scorpio-N",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "scorpio-classic",
+          "name": "Scorpio Classic",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "thar",
+          "name": "Thar",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "thar-roxx",
+          "name": "Thar Roxx",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "bolero",
+          "name": "Bolero",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "bolero-neo",
+          "name": "Bolero Neo",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xuv500",
+          "name": "XUV500",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xuv300",
+          "name": "XUV300",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xuv-3xo",
+          "name": "XUV 3XO",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xuv700",
+          "name": "XUV700",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xuv400",
+          "name": "XUV400",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "kuv100",
+          "name": "KUV100",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "marazzo",
+          "name": "Marazzo",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "verito",
+          "name": "Verito",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "logan",
+          "name": "Logan",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xylo",
+          "name": "Xylo",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "be-6",
+          "name": "BE 6",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xev-9e",
+          "name": "XEV 9e",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "toyota",
+      "name": "Toyota",
+      "status": "active",
+      "models": [
+        {
+          "id": "qualis",
+          "name": "Qualis",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "innova",
+          "name": "Innova",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "innova-crysta",
+          "name": "Innova Crysta",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "innova-hycross",
+          "name": "Innova Hycross",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "fortuner",
+          "name": "Fortuner",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "corolla",
+          "name": "Corolla",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "corolla-altis",
+          "name": "Corolla Altis",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "etios",
+          "name": "Etios",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "etios-liva",
+          "name": "Etios Liva",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "glanza",
+          "name": "Glanza",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "urban-cruiser",
+          "name": "Urban Cruiser",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "urban-cruiser-hyryder",
+          "name": "Urban Cruiser Hyryder",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "camry",
+          "name": "Camry",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "land-cruiser",
+          "name": "Land Cruiser",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "land-cruiser-prado",
+          "name": "Land Cruiser Prado",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "vellfire",
+          "name": "Vellfire",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "hilux",
+          "name": "Hilux",
+          "category": "Truck",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "rumion",
+          "name": "Rumion",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "honda",
+      "name": "Honda",
+      "status": "active",
+      "models": [
+        {
+          "id": "city",
+          "name": "City",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "civic",
+          "name": "Civic",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "accord",
+          "name": "Accord",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "cr-v",
+          "name": "CR-V",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "amaze",
+          "name": "Amaze",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "jazz",
+          "name": "Jazz",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "brio",
+          "name": "Brio",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "mobilio",
+          "name": "Mobilio",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "br-v",
+          "name": "BR-V",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "wr-v",
+          "name": "WR-V",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "elevate",
+          "name": "Elevate",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "kia",
+      "name": "Kia",
+      "status": "active",
+      "models": [
+        {
+          "id": "seltos",
+          "name": "Seltos",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "X-Line"
+          ]
+        },
+        {
+          "id": "sonet",
+          "name": "Sonet",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "X-Line"
+          ]
+        },
+        {
+          "id": "carens",
+          "name": "Carens",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "carnival",
+          "name": "Carnival",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ev6",
+          "name": "EV6",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "mg-motor",
+      "name": "MG Motor",
+      "status": "active",
+      "models": [
+        {
+          "id": "hector",
+          "name": "Hector",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "hector-plus",
+          "name": "Hector Plus",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "astor",
+          "name": "Astor",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "Blackstorm"
+          ]
+        },
+        {
+          "id": "zs-ev",
+          "name": "ZS EV",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "gloster",
+          "name": "Gloster",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "comet-ev",
+          "name": "Comet EV",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "windsor-ev",
+          "name": "Windsor EV",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "skoda",
+      "name": "Skoda",
+      "status": "active",
+      "models": [
+        {
+          "id": "octavia",
+          "name": "Octavia",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "superb",
+          "name": "Superb",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "laura",
+          "name": "Laura",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "fabia",
+          "name": "Fabia",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "rapid",
+          "name": "Rapid",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "kushaq",
+          "name": "Kushaq",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "slavia",
+          "name": "Slavia",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "kodiaq",
+          "name": "Kodiaq",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "volkswagen",
+      "name": "Volkswagen",
+      "status": "active",
+      "models": [
+        {
+          "id": "polo",
+          "name": "Polo",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "vento",
+          "name": "Vento",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ameo",
+          "name": "Ameo",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "jetta",
+          "name": "Jetta",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "passat",
+          "name": "Passat",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "taigun",
+          "name": "Taigun",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "virtus",
+          "name": "Virtus",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "tiguan",
+          "name": "Tiguan",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "renault",
+      "name": "Renault",
+      "status": "active",
+      "models": [
+        {
+          "id": "duster",
+          "name": "Duster",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "kwid",
+          "name": "Kwid",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "triber",
+          "name": "Triber",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "kiger",
+          "name": "Kiger",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "lodgy",
+          "name": "Lodgy",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "scala",
+          "name": "Scala",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "pulse",
+          "name": "Pulse",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "fluence",
+          "name": "Fluence",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "koleos",
+          "name": "Koleos",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "nissan",
+      "name": "Nissan",
+      "status": "active",
+      "models": [
+        {
+          "id": "micra",
+          "name": "Micra",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sunny",
+          "name": "Sunny",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "terrano",
+          "name": "Terrano",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "magnite",
+          "name": "Magnite",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "kicks",
+          "name": "Kicks",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "evalia",
+          "name": "Evalia",
+          "category": "Commercial Vehicle",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "citroen",
+      "name": "Citroën",
+      "status": "active",
+      "models": [
+        {
+          "id": "c5-aircross",
+          "name": "C5 Aircross",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "c3",
+          "name": "C3",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "c3-aircross",
+          "name": "C3 Aircross",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ec3",
+          "name": "eC3",
+          "category": "Hatchback",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "basalt",
+          "name": "Basalt",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "jeep",
+      "name": "Jeep",
+      "status": "active",
+      "models": [
+        {
+          "id": "compass",
+          "name": "Compass",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "meridian",
+          "name": "Meridian",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "wrangler",
+          "name": "Wrangler",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "grand-cherokee",
+          "name": "Grand Cherokee",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "isuzu",
+      "name": "Isuzu",
+      "status": "active",
+      "models": [
+        {
+          "id": "d-max",
+          "name": "D-Max",
+          "category": "Truck",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "V-Cross",
+            "Hi-Lander"
+          ]
+        },
+        {
+          "id": "mu-x",
+          "name": "MU-X",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "force-motors",
+      "name": "Force Motors",
+      "status": "active",
+      "models": [
+        {
+          "id": "gurkha",
+          "name": "Gurkha",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "trax",
+          "name": "Trax",
+          "category": "Commercial Vehicle",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "traveller",
+          "name": "Traveller",
+          "category": "Commercial Vehicle",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "byd",
+      "name": "BYD",
+      "status": "active",
+      "models": [
+        {
+          "id": "atto-3",
+          "name": "Atto 3",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "e6",
+          "name": "e6",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "seal",
+          "name": "Seal",
+          "category": "Sedan",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sealion-7",
+          "name": "Sealion 7",
+          "category": "SUV",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "mercedes-benz",
+      "name": "Mercedes-Benz",
+      "status": "active",
+      "models": [
+        {
+          "id": "c-class",
+          "name": "C-Class",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "e-class",
+          "name": "E-Class",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "s-class",
+          "name": "S-Class",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "a-class-limousine",
+          "name": "A-Class Limousine",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "cla",
+          "name": "CLA",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "gla",
+          "name": "GLA",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "glc",
+          "name": "GLC",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "gle",
+          "name": "GLE",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "gls",
+          "name": "GLS",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "g-class",
+          "name": "G-Class",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "eqs",
+          "name": "EQS",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "eqb",
+          "name": "EQB",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "bmw",
+      "name": "BMW",
+      "status": "active",
+      "models": [
+        {
+          "id": "3-series",
+          "name": "3 Series",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "5-series",
+          "name": "5 Series",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "7-series",
+          "name": "7 Series",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "2-series-gran-coupe",
+          "name": "2 Series Gran Coupe",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "x1",
+          "name": "X1",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "x3",
+          "name": "X3",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "x5",
+          "name": "X5",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "x7",
+          "name": "X7",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "z4",
+          "name": "Z4",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "i4",
+          "name": "i4",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "i7",
+          "name": "i7",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "mini",
+      "name": "MINI",
+      "status": "active",
+      "models": [
+        {
+          "id": "cooper",
+          "name": "Cooper",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": [
+            "Cooper S"
+          ]
+        },
+        {
+          "id": "countryman",
+          "name": "Countryman",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "audi",
+      "name": "Audi",
+      "status": "active",
+      "models": [
+        {
+          "id": "a4",
+          "name": "A4",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "a6",
+          "name": "A6",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "a8-l",
+          "name": "A8 L",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "q3",
+          "name": "Q3",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "q5",
+          "name": "Q5",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "q7",
+          "name": "Q7",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "q8",
+          "name": "Q8",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "e-tron-gt",
+          "name": "e-tron GT",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "volvo",
+      "name": "Volvo",
+      "status": "active",
+      "models": [
+        {
+          "id": "s60",
+          "name": "S60",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "s90",
+          "name": "S90",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xc40",
+          "name": "XC40",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xc60",
+          "name": "XC60",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xc90",
+          "name": "XC90",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "c40",
+          "name": "C40",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "jaguar",
+      "name": "Jaguar",
+      "status": "active",
+      "models": [
+        {
+          "id": "xe",
+          "name": "XE",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xf",
+          "name": "XF",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "xj",
+          "name": "XJ",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "f-pace",
+          "name": "F-Pace",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "i-pace",
+          "name": "I-Pace",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "f-type",
+          "name": "F-Type",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "land-rover",
+      "name": "Land Rover",
+      "status": "active",
+      "models": [
+        {
+          "id": "range-rover",
+          "name": "Range Rover",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "range-rover-sport",
+          "name": "Range Rover Sport",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "range-rover-evoque",
+          "name": "Range Rover Evoque",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "range-rover-velar",
+          "name": "Range Rover Velar",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "discovery",
+          "name": "Discovery",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "discovery-sport",
+          "name": "Discovery Sport",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "defender",
+          "name": "Defender",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "lexus",
+      "name": "Lexus",
+      "status": "active",
+      "models": [
+        {
+          "id": "es",
+          "name": "ES",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "rx",
+          "name": "RX",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "nx",
+          "name": "NX",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "lx",
+          "name": "LX",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "lm",
+          "name": "LM",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "porsche",
+      "name": "Porsche",
+      "status": "active",
+      "models": [
+        {
+          "id": "911",
+          "name": "911",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "cayenne",
+          "name": "Cayenne",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "macan",
+          "name": "Macan",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "panamera",
+          "name": "Panamera",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "taycan",
+          "name": "Taycan",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "lamborghini",
+      "name": "Lamborghini",
+      "status": "active",
+      "models": [
+        {
+          "id": "huracan",
+          "name": "Huracán",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "urus",
+          "name": "Urus",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "aventador",
+          "name": "Aventador",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "revuelto",
+          "name": "Revuelto",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "ferrari",
+      "name": "Ferrari",
+      "status": "active",
+      "models": [
+        {
+          "id": "roma",
+          "name": "Roma",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "portofino",
+          "name": "Portofino",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "296-gtb",
+          "name": "296 GTB",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "purosangue",
+          "name": "Purosangue",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "maserati",
+      "name": "Maserati",
+      "status": "active",
+      "models": [
+        {
+          "id": "ghibli",
+          "name": "Ghibli",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "quattroporte",
+          "name": "Quattroporte",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "levante",
+          "name": "Levante",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "grecale",
+          "name": "Grecale",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "bentley",
+      "name": "Bentley",
+      "status": "active",
+      "models": [
+        {
+          "id": "continental-gt",
+          "name": "Continental GT",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "flying-spur",
+          "name": "Flying Spur",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "bentayga",
+          "name": "Bentayga",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "rolls-royce",
+      "name": "Rolls-Royce",
+      "status": "active",
+      "models": [
+        {
+          "id": "ghost",
+          "name": "Ghost",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "phantom",
+          "name": "Phantom",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "cullinan",
+          "name": "Cullinan",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "wraith",
+          "name": "Wraith",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "aston-martin",
+      "name": "Aston Martin",
+      "status": "active",
+      "models": [
+        {
+          "id": "db11",
+          "name": "DB11",
+          "category": "Luxury Car",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "db12",
+          "name": "DB12",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "vantage",
+          "name": "Vantage",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "dbx",
+          "name": "DBX",
+          "category": "Luxury Car",
+          "status": "active",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "ford",
+      "name": "Ford",
+      "status": "historical",
+      "models": [
+        {
+          "id": "ecosport",
+          "name": "EcoSport",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "endeavour",
+          "name": "Endeavour",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "figo",
+          "name": "Figo",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "aspire",
+          "name": "Aspire",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "fiesta",
+          "name": "Fiesta",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "classic",
+          "name": "Classic",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "ikon",
+          "name": "Ikon",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "fusion",
+          "name": "Fusion",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "mondeo",
+          "name": "Mondeo",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "chevrolet",
+      "name": "Chevrolet",
+      "status": "historical",
+      "models": [
+        {
+          "id": "beat",
+          "name": "Beat",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "spark",
+          "name": "Spark",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sail",
+          "name": "Sail",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "sail-u-va",
+          "name": "Sail U-VA",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "aveo",
+          "name": "Aveo",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "aveo-u-va",
+          "name": "Aveo U-VA",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "optra",
+          "name": "Optra",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "cruze",
+          "name": "Cruze",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "tavera",
+          "name": "Tavera",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "captiva",
+          "name": "Captiva",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "forester",
+          "name": "Forester",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "fiat",
+      "name": "Fiat",
+      "status": "historical",
+      "models": [
+        {
+          "id": "punto",
+          "name": "Punto",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "grande-punto",
+          "name": "Grande Punto",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "punto-evo",
+          "name": "Punto Evo",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "linea",
+          "name": "Linea",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "palio",
+          "name": "Palio",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "siena",
+          "name": "Siena",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "adventure",
+          "name": "Adventure",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "avventura",
+          "name": "Avventura",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "uno",
+          "name": "Uno",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "mitsubishi",
+      "name": "Mitsubishi",
+      "status": "historical",
+      "models": [
+        {
+          "id": "lancer",
+          "name": "Lancer",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "cedia",
+          "name": "Cedia",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "pajero",
+          "name": "Pajero",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "pajero-sport",
+          "name": "Pajero Sport",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "montero",
+          "name": "Montero",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "outlander",
+          "name": "Outlander",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "datsun",
+      "name": "Datsun",
+      "status": "historical",
+      "models": [
+        {
+          "id": "go",
+          "name": "GO",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "go-plus",
+          "name": "GO+",
+          "category": "SUV",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "redi-go",
+          "name": "redi-GO",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "daewoo",
+      "name": "Daewoo",
+      "status": "historical",
+      "models": [
+        {
+          "id": "cielo",
+          "name": "Cielo",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "matiz",
+          "name": "Matiz",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "nexia",
+          "name": "Nexia",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "opel",
+      "name": "Opel",
+      "status": "historical",
+      "models": [
+        {
+          "id": "astra",
+          "name": "Astra",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "corsa",
+          "name": "Corsa",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "vectra",
+          "name": "Vectra",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "hindustan-motors",
+      "name": "Hindustan Motors",
+      "status": "historical",
+      "models": [
+        {
+          "id": "ambassador",
+          "name": "Ambassador",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "contessa",
+          "name": "Contessa",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "premier",
+      "name": "Premier",
+      "status": "historical",
+      "models": [
+        {
+          "id": "padmini",
+          "name": "Padmini",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "premier-118ne",
+          "name": "118NE",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        },
+        {
+          "id": "rio",
+          "name": "Rio",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "san-motors",
+      "name": "San Motors",
+      "status": "historical",
+      "models": [
+        {
+          "id": "storm",
+          "name": "Storm",
+          "category": "Hatchback",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "peugeot",
+      "name": "Peugeot",
+      "status": "historical",
+      "models": [
+        {
+          "id": "309",
+          "name": "309",
+          "category": "Sedan",
+          "status": "discontinued",
+          "aliases": [],
+          "variants": []
+        }
+      ]
+    }
+  ]
+}

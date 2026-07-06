@@ -90,27 +90,62 @@ class SeverityLevel(str, Enum):
     TOTAL_LOSS = "Total Loss"
 
 
-# Ordering for "worst damage wins" aggregation — not the enum's declaration
-# order, so keep this explicit rather than relying on Enum iteration order.
-_SEVERITY_RANK = {
-    SeverityLevel.MINOR: 0,
-    SeverityLevel.MODERATE: 1,
-    SeverityLevel.SEVERE: 2,
-    SeverityLevel.TOTAL_LOSS: 3,
+class VehicleCategory(str, Enum):
+    """User-submitted at claim intake — never inferred from the car-parts/
+    damage-segmentation models, which weren't built as vehicle classifiers.
+    This is the sole input to category-aware pricing (see
+    `services/cost_model/`)."""
+
+    HATCHBACK = "Hatchback"
+    SEDAN = "Sedan"
+    SUV = "SUV"
+    LUXURY_CAR = "Luxury Car"
+    BUS = "Bus"
+    TRUCK = "Truck"
+    COMMERCIAL_VEHICLE = "Commercial Vehicle"
+
+
+class PartSeverity(str, Enum):
+    """Per-part severity from the ai-service rule engine
+    (`ai-service/pipeline.py:get_severity`). `UNCERTAIN` means no
+    trusted-confidence damage mask supported a real severity call — see the
+    candidate_mask vs trusted_mask distinction there. It must never be
+    treated as equivalent to a confident Minor/Moderate/Severe call."""
+
+    MINOR = "Minor"
+    MODERATE = "Moderate"
+    SEVERE = "Severe"
+    UNCERTAIN = "Uncertain"
+
+
+# Ranking used only to pick the "worst confirmed part" for the claim-wide
+# rollup. UNCERTAIN is deliberately absent — an unconfirmed part must never
+# win a "worst severity" comparison against a confirmed one.
+_PART_SEVERITY_RANK = {
+    PartSeverity.MINOR: 0,
+    PartSeverity.MODERATE: 1,
+    PartSeverity.SEVERE: 2,
 }
 
 
-class DamageType(str, Enum):
-    """Fixed taxonomy. The Vision Agent must map whatever the HF model
-    outputs onto one of these — an open vocabulary would make DamageType
-    useless as an XGBoost categorical feature for cost estimation."""
+class PartAssessmentStatus(str, Enum):
+    """Whether the vision pipeline trusts this part's assessment enough to
+    act on automatically (`ai-service/pipeline.py:get_status`), or whether
+    a human needs to look at it."""
 
-    DENT = "Dent"
-    SCRATCH = "Scratch"
-    BROKEN_WINDSHIELD = "Broken Windshield"
-    BUMPER_DAMAGE = "Bumper Damage"
-    FLOOD_DAMAGE = "Flood Damage"
-    OTHER = "Other"
+    ACCEPTED = "Accepted"
+    REVIEW_REQUIRED = "Review Required"
+
+
+class RecommendedAction(str, Enum):
+    """MVP heuristic recommendation from `ai-service/pipeline.py:get_repair_action`.
+    Never described to users as insurer-approved or garage-certified."""
+
+    REPAIR = "Repair"
+    REPAIR_REPAINT = "Repair + Repaint"
+    REPLACE = "Replace"
+    REPLACE_MAJOR_REPAIR = "Replace / Major Repair"
+    MANUAL_INSPECTION = "Manual Inspection"
 
 
 class PolicyType(str, Enum):
@@ -136,6 +171,14 @@ class ReviewStatus(str, Enum):
 # Small formatting helper — Indian digit grouping (lakh/crore), not Western
 # thousands grouping. "₹1234567" should render "₹12,34,567", not "₹1,234,567".
 # ---------------------------------------------------------------------------
+
+
+def generate_claim_id() -> str:
+    """The one place the public claim id format is defined. Used by both
+    `ClaimState.new()` and the persistence layer's claim-creation flow
+    (`app/services/claim_service.py`) so a claim keeps the same id shape
+    whether or not the LangGraph supervisor is involved yet."""
+    return f"CLM-{uuid.uuid4().hex[:12].upper()}"
 
 
 def format_inr(amount: int) -> str:
@@ -181,6 +224,20 @@ class ClaimIntakeInput(BaseModel):
         default=None, description="Free-text location, used for the weather cross-check"
     )
     policyholder_name: Optional[str] = None
+
+    # Vehicle metadata — claimant-submitted at claim intake. `vehicle_type`
+    # is required because it's the sole driver of category-aware pricing
+    # (see services/cost_model/); make/model/year are optional context kept
+    # for future pricing refinement (OEM-specific parts, age-based
+    # depreciation) but not used by the MVP pricing engine yet.
+    vehicle_type: VehicleCategory = Field(
+        description="Vehicle category, used for category-aware repair-cost pricing"
+    )
+    vehicle_make: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    vehicle_year: Optional[int] = Field(
+        default=None, description="Manufacture year, e.g. 2023"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -279,28 +336,55 @@ class PolicyDetails(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class DamageDetection(BaseModel):
-    damage_type: DamageType
-    severity: SeverityLevel
-    confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    source_image_id: Optional[str] = None
-    bounding_box: Optional[List[float]] = Field(
-        default=None, description="[x1, y1, x2, y2] normalized 0-1, if the model provides one"
+class PartDamageAssessment(BaseModel):
+    """One damaged vehicle part, mapped 1:1 from the ai-service car-parts +
+    damage-segmentation pipeline's JSON (`ai-service/pipeline.py:analyze_image`,
+    one entry of `damaged_parts`). Deliberately part-centric rather than a
+    generic damage-type taxonomy — the rule engine's status/action/pricing
+    decisions all key off the specific part, not just a damage category."""
+
+    part: str = Field(description="Raw part label from the car-parts model, e.g. 'Car hood'")
+    severity: PartSeverity
+    damage_percentage: float = Field(
+        ge=0.0, description="Percent of the part's bounding box covered by damage"
     )
+    damage_confidence: float = Field(ge=0.0, le=1.0)
+    part_confidence: float = Field(ge=0.0, le=1.0)
+    status: PartAssessmentStatus
+    recommended_action: RecommendedAction
+
+    # Multi-image aggregate metadata, populated by the ai-service's
+    # merge_analysis_results when a claim has more than one photo. A
+    # single-image assessment leaves these at their single-observation
+    # defaults.
+    detected_in_images: List[str] = Field(default_factory=list)
+    observation_count: int = Field(default=1, ge=1)
+    max_damage_confidence_seen: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    max_part_confidence_seen: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class VisionAssessment(BaseModel):
-    detections: List[DamageDetection] = Field(default_factory=list)
+    damaged_parts: List[PartDamageAssessment] = Field(default_factory=list)
     overall_severity: Optional[SeverityLevel] = None
     damage_summary: Optional[str] = Field(
-        default=None, description="Human-readable summary for the report, e.g. 'Windshield crack, hood dents'"
+        default=None, description="Human-readable summary for the report, e.g. 'Front bumper, car hood damaged'"
     )
 
     @model_validator(mode="after")
     def _derive_overall_severity(self) -> "VisionAssessment":
-        if self.overall_severity is None and self.detections:
-            worst = max(self.detections, key=lambda d: _SEVERITY_RANK[d.severity])
-            self.overall_severity = worst.severity
+        if self.overall_severity is not None:
+            return self
+        # Only Accepted (trusted) parts with a confirmed severity may drive
+        # the claim-wide rollup. A Review-Required/Uncertain part must never
+        # produce a confident overall severity — see PartSeverity docstring.
+        confirmed = [
+            p
+            for p in self.damaged_parts
+            if p.status == PartAssessmentStatus.ACCEPTED and p.severity in _PART_SEVERITY_RANK
+        ]
+        if confirmed:
+            worst = max(confirmed, key=lambda p: _PART_SEVERITY_RANK[p.severity])
+            self.overall_severity = SeverityLevel(worst.severity.value)
         return self
 
 
@@ -309,24 +393,56 @@ class VisionAssessment(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class CostEstimate(BaseModel):
-    low_inr: int = Field(ge=0)
-    high_inr: int = Field(ge=0)
+class PartCostEstimate(BaseModel):
+    """Preliminary heuristic repair-cost range for a single damaged part.
+    Computed by `services/cost_model/pricing_service.py:estimate_cost` —
+    never by the AI vision pipeline, which stays inference-only. Must never
+    be described as an insurer-approved, garage-certified, or guaranteed
+    repair cost — only ever as a "Preliminary Cost Estimate"."""
+
+    min_inr: int = Field(ge=0)
+    max_inr: int = Field(ge=0)
     currency: Literal["INR"] = "INR"
-    basis: Optional[str] = Field(
-        default=None, description="e.g. 'XGBoost v0.3, features: age/type/severity/vehicle_type'"
+    vehicle_category: str = Field(description="Vehicle category this estimate was priced for")
+    basis: str = Field(
+        default="category_heuristic_v0",
+        description=(
+            "Pricing mechanism used, e.g. 'category_heuristic_v0' (MVP config "
+            "table) — replace with 'workshop_data'/'oem_api'/etc. as real "
+            "pricing sources come online"
+        ),
     )
-    model_version: Optional[str] = None
+    label: Literal["Preliminary Cost Estimate"] = "Preliminary Cost Estimate"
 
     @model_validator(mode="after")
-    def _check_range(self) -> "CostEstimate":
-        if self.high_inr < self.low_inr:
-            raise ValueError("high_inr must be >= low_inr")
+    def _check_range(self) -> "PartCostEstimate":
+        if self.max_inr < self.min_inr:
+            raise ValueError("max_inr must be >= min_inr")
         return self
 
     @property
     def display_range(self) -> str:
-        return f"{format_inr(self.low_inr)} - {format_inr(self.high_inr)}"
+        return f"{format_inr(self.min_inr)} - {format_inr(self.max_inr)}"
+
+
+class ClaimCostSummary(BaseModel):
+    """Claim-level rollup of every damaged part's cost estimate. Parts still
+    under manual inspection contribute `None` and are excluded from the
+    totals — a claim must never receive a confident total built partly from
+    uncertain per-part results. See MANUAL REVIEW AND PRICING rule."""
+
+    per_part: dict[str, Optional[PartCostEstimate]] = Field(default_factory=dict)
+    total_min_inr: int = Field(default=0, ge=0)
+    total_max_inr: int = Field(default=0, ge=0)
+    currency: Literal["INR"] = "INR"
+    parts_priced: int = Field(default=0, ge=0)
+    parts_pending_manual_inspection: int = Field(default=0, ge=0)
+
+    @property
+    def display_range(self) -> str:
+        if self.parts_priced == 0:
+            return "Pending manual inspection"
+        return f"{format_inr(self.total_min_inr)} - {format_inr(self.total_max_inr)}"
 
 
 # ---------------------------------------------------------------------------
@@ -445,7 +561,7 @@ class ClaimState(BaseModel):
     vehicle: Optional[VehicleDetails] = None
     policy: Optional[PolicyDetails] = None
     vision: Optional[VisionAssessment] = None
-    cost: Optional[CostEstimate] = None
+    cost: Optional[ClaimCostSummary] = None
     fraud: Optional[FraudAssessment] = None
     report: Optional[ClaimTriageReport] = None
 
@@ -463,7 +579,7 @@ class ClaimState(BaseModel):
     def new(cls, intake: ClaimIntakeInput) -> "ClaimState":
         now = datetime.now(timezone.utc)
         return cls(
-            claim_id=f"CLM-{uuid.uuid4().hex[:12].upper()}",
+            claim_id=generate_claim_id(),
             created_at=now,
             updated_at=now,
             intake=intake,

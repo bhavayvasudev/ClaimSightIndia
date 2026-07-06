@@ -1,5 +1,12 @@
 # Env / secrets
+# .env.example is intentionally NOT listed here — it's a template with no
+# real values and should be version-controlled so the required variables
+# are documented in the repo.
 .env
+.env.local
+.env.example
+.env.example.local
+.env*.local
 *.pem
 
 # Python
@@ -15,15 +22,19 @@ venv/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 
 # Data / artifacts
 data/uploads/
-backend/app/services/cost_model/*.pkl
-backend/app/services/cost_model/*.json
-!backend/app/services/cost_model/training_config.json
 evaluation/reports/
 *.log
+*.db
 
 # OS
 .DS_Store
 Thumbs.db
+
+ai-service/.venv/
+runs/
+ai-service/uploads/
+*.pt

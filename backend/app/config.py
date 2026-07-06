@@ -7,7 +7,7 @@ testable (override via `Settings(**overrides)` in tests).
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,6 +35,64 @@ class Settings(BaseSettings):
 
     # File storage
     upload_dir: str = Field(default="./data/uploads")
+
+    # ai-service (YOLO car-parts + damage-segmentation pipeline). Never
+    # hardcode this elsewhere — services/ai_client.py is the only caller.
+    ai_service_url: str = Field(default="http://localhost:8500")
+    ai_service_timeout_seconds: float = Field(default=30.0)
+
+    # Browser origins allowed to call this API directly (comma-separated).
+    # Default covers the Next.js dev server only — widen via env var for
+    # other environments, never hardcode "*" here.
+    cors_allowed_origins: str = Field(default="http://localhost:3000")
+
+    # Must match the frontend's AUTH_GOOGLE_ID (the OAuth client id Google
+    # issued the ID token's `aud` claim for) — see app/core/google_oidc.py.
+    auth_google_client_id: str = Field(default="")
+    google_jwks_url: str = Field(default="https://www.googleapis.com/oauth2/v3/certs")
+
+    # Backend-issued access tokens (app/core/security.py). Signed with this
+    # app's own secret, never Google's — the frontend only ever carries this
+    # token, it never verifies or mints one itself.
+    backend_jwt_secret: str = Field(default="")
+    backend_jwt_issuer: str = Field(default="claimsight-backend")
+    backend_jwt_audience: str = Field(default="claimsight-frontend")
+    backend_jwt_ttl_seconds: int = Field(default=43200)  # 12h
+
+    # slowapi/limits storage backend (app/core/rate_limit.py). "memory://"
+    # is per-process — correct for local dev or a single instance only.
+    # Point this at a Redis-compatible URI (e.g. "redis://redis:6379") for
+    # any multi-instance deployment, or each instance enforces its own
+    # independent limit and the effective limit multiplies by instance count.
+    rate_limit_storage_uri: str = Field(default="memory://")
+
+    # Optional shared secret attached as `X-Internal-Service-Token` on every
+    # backend -> ai-service call (see app/services/ai_client.py). Leave unset
+    # for local dev. In production, prefer keeping the ai-service on a
+    # private network unreachable from outside; set this in addition if it
+    # is ever reachable from a wider network than the backend.
+    ai_service_shared_secret: str = Field(default="")
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def _require_secrets_in_production(self) -> "Settings":
+        if self.environment == "production":
+            missing = [
+                name
+                for name, value in (
+                    ("backend_jwt_secret", self.backend_jwt_secret),
+                    ("auth_google_client_id", self.auth_google_client_id),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    f"Missing required production settings: {', '.join(missing)}"
+                )
+        return self
 
 
 @lru_cache

@@ -7,13 +7,15 @@ from app.schemas.claim_state import (
     ClaimIntakeInput,
     ClaimState,
     ClaimStatus,
-    CostEstimate,
-    DamageDetection,
-    DamageType,
     FraudAssessment,
     FraudRisk,
+    PartAssessmentStatus,
+    PartCostEstimate,
+    PartDamageAssessment,
+    PartSeverity,
     PolicyDetails,
     SeverityLevel,
+    VehicleCategory,
     VehicleDetails,
     VisionAssessment,
     format_inr,
@@ -28,6 +30,10 @@ def _intake() -> ClaimIntakeInput:
         incident_description="Rear-ended at a signal, windshield cracked.",
         incident_date=date(2026, 6, 20),
         incident_location="Bengaluru, Karnataka",
+        vehicle_type=VehicleCategory.SEDAN,
+        vehicle_make="Hyundai",
+        vehicle_model="Verna",
+        vehicle_year=2021,
     )
 
 
@@ -45,25 +51,73 @@ def test_registration_number_normalizes_and_derives_state():
     assert v.state == "Maharashtra"
 
 
-def test_vision_assessment_derives_overall_severity_from_worst_detection():
+def _part(
+    part: str,
+    severity: PartSeverity,
+    status: PartAssessmentStatus = PartAssessmentStatus.ACCEPTED,
+) -> PartDamageAssessment:
+    return PartDamageAssessment(
+        part=part,
+        severity=severity,
+        damage_percentage=25.0,
+        damage_confidence=0.5,
+        part_confidence=0.8,
+        status=status,
+        recommended_action="Repair",
+    )
+
+
+def test_vision_assessment_derives_overall_severity_from_worst_accepted_part():
     vision = VisionAssessment(
-        detections=[
-            DamageDetection(damage_type=DamageType.SCRATCH, severity=SeverityLevel.MINOR),
-            DamageDetection(
-                damage_type=DamageType.BROKEN_WINDSHIELD, severity=SeverityLevel.SEVERE
-            ),
+        damaged_parts=[
+            _part("Front bumper", PartSeverity.MINOR),
+            _part("Car hood", PartSeverity.SEVERE),
         ]
     )
     assert vision.overall_severity == SeverityLevel.SEVERE
 
 
-def test_cost_estimate_rejects_inverted_range():
+def test_vision_assessment_ignores_review_required_parts_for_overall_severity():
+    # A Review Required/Uncertain part must never drive a confident
+    # claim-wide severity, even if its raw damage_percentage looks large.
+    vision = VisionAssessment(
+        damaged_parts=[
+            _part("Headlight - (R)", PartSeverity.UNCERTAIN, PartAssessmentStatus.REVIEW_REQUIRED),
+        ]
+    )
+    assert vision.overall_severity is None
+
+
+def test_part_damage_assessment_has_no_pricing_field():
+    # Pins the ai-service/backend pricing boundary at the schema level:
+    # the vision contract must never carry a cost field, even if a raw
+    # ai-service payload (or an older client) still sends one — pricing
+    # is computed downstream by services/cost_model, never accepted as
+    # vision-supplied data.
+    assert "estimated_cost" not in PartDamageAssessment.model_fields
+
+    part = PartDamageAssessment.model_validate(
+        {
+            "part": "Front bumper",
+            "severity": "Moderate",
+            "damage_percentage": 20.0,
+            "damage_confidence": 0.5,
+            "part_confidence": 0.8,
+            "status": "Accepted",
+            "recommended_action": "Repair",
+            "estimated_cost": {"min": 2500, "max": 7000, "currency": "INR"},
+        }
+    )
+    assert not hasattr(part, "estimated_cost")
+
+
+def test_part_cost_estimate_rejects_inverted_range():
     try:
-        CostEstimate(low_inr=50_000, high_inr=30_000)
+        PartCostEstimate(min_inr=50_000, max_inr=30_000, vehicle_category="Sedan")
     except ValueError:
         pass
     else:
-        raise AssertionError("expected ValueError for high_inr < low_inr")
+        raise AssertionError("expected ValueError for max_inr < min_inr")
 
 
 def test_format_inr_uses_indian_digit_grouping():

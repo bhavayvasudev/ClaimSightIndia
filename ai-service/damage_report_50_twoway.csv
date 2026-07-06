@@ -1,0 +1,18 @@
+image,part,severity,damage_percentage,damage_confidence,part_confidence,status
+front_crash.jpg,Car hood,Severe,70.05,0.26,0.9,Accepted
+front_crash.jpg,Front bumper,Severe,75.44,0.26,0.19,Review Required
+front_crash.jpg,Headlight - (R),Severe,79.55,0.08,0.61,Review Required
+rear_crash.jpg,Rear bumper,Severe,48.7,0.33,0.71,Accepted
+rear_crash.jpg,Passenger's door - (R/R),Moderate,22.63,0.33,0.6,Accepted
+rear_crash.jpg,Car boot,Severe,49.23,0.33,0.11,Review Required
+rear_crash.jpg,Driver's door - (F/R),Moderate,24.51,0.33,0.1,Review Required
+severe_crash.jpg,Car hood,Severe,73.68,0.69,0.93,Accepted
+severe_crash.jpg,Headlight - (R),Severe,27.86,0.69,0.44,Accepted
+severe_crash.jpg,Headlight - (L),Moderate,15.37,0.13,0.18,Review Required
+side_damage.jpg,Rear bumper,Severe,49.02,0.1,0.44,Review Required
+side_damage.jpg,Car boot,Severe,50.66,0.1,0.28,Review Required
+side_damage.jpg,Fender - (R/R),Severe,41.62,0.1,0.21,Review Required
+side_damage.jpg,Fender - (R/L),Severe,37.76,0.1,0.18,Review Required
+small_dent.jpg,Rear bumper,Moderate,34.29,0.87,0.8,Accepted
+small_dent.jpg,Car boot,Moderate,33.5,0.87,0.14,Review Required
+small_dent.jpg,Rear light - (L),Severe,49.25,0.42,0.42,Accepted
