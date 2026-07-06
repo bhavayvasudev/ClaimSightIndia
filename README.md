@@ -359,8 +359,8 @@ ClaimSight-India/
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd ClaimSight-India
+git clone github.com/bhavayvasudev/ClaimSightIndia
+cd ClaimSightIndia
 ```
 
 ### 2. Start the AI Service
