@@ -69,11 +69,3 @@ does not assume the backend is its only possible caller):
 All four are distinct, stable `error_code`s in the same
 `{"error_code", "message", "invalid_filenames"}` shape (a 422), so the
 frontend never has to guess which check failed from a string message.
-
-## Secrets
-
-`BACKEND_JWT_SECRET` and `AUTH_GOOGLE_CLIENT_ID` are required (the app
-fails to start without them) whenever `ENVIRONMENT=production`
-(`app/config.py`). Generate `BACKEND_JWT_SECRET` with
-`openssl rand -base64 48`; never reuse the frontend's `AUTH_SECRET` for it
-— they protect different things and rotate on different schedules.
