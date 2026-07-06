@@ -7,7 +7,9 @@ import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { signOut, useSession } from "next-auth/react";
 import { AssessmentCTAButton } from "../ui/AssessmentCTAButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { effectiveAvatarUrl, effectiveDisplayName, resolveAssetUrl } from "@/lib/api";
 import { EASE } from "@/lib/motion";
+import { useProfile } from "@/lib/profile/useProfile";
 
 const UNAUTH_LINKS = [
   { label: "How It Works", href: "/#workflow" },
@@ -38,13 +40,31 @@ export function Nav() {
   const isAuthed = Boolean(session?.user);
   const links = isAuthed ? AUTH_LINKS : UNAUTH_LINKS;
 
+  // Backend profile (custom display name / photo) with session-derived
+  // Google values as the fallback while it loads — see lib/profile.
+  const { profile } = useProfile();
+  const displayName = profile
+    ? effectiveDisplayName(profile)
+    : (session?.user?.name ?? session?.user?.email);
+  const profileAvatar = profile ? effectiveAvatarUrl(profile) : null;
+  const avatarSrc = profileAvatar ? resolveAssetUrl(profileAvatar) : session?.user?.image;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Mobile (below md) gets a single collapsible menu instead of the
+  // desktop link row + profile dropdown — without it, a signed-in phone
+  // user had no way to reach the dashboard or sign out at all.
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+      }
+      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -57,7 +77,7 @@ export function Nav() {
         initial={{ opacity: 0, y: -24 }}
         animate={{ opacity: 1, y: 0, scale: scrolled ? 0.955 : 1 }}
         transition={{ duration: 0.8, ease: EASE }}
-        className={`pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-carbon/90 backdrop-blur-md transition-[padding,box-shadow] duration-500 ${
+        className={`pointer-events-auto relative flex items-center gap-1 rounded-full border border-white/10 bg-carbon/90 backdrop-blur-md transition-[padding,box-shadow] duration-500 ${
           scrolled
             ? "py-1.5 pl-4 pr-1.5 shadow-[0_4px_16px_rgba(24,25,37,0.28),0_1px_2px_rgba(24,25,37,0.2)]"
             : "py-2 pl-5 pr-2 shadow-[0_12px_32px_rgba(24,25,37,0.3),0_2px_6px_rgba(24,25,37,0.22)]"
@@ -92,7 +112,7 @@ export function Nav() {
         )}
 
         {isAuthed && (
-          <div className="ml-1 hidden md:block">
+          <div className="ml-1">
             <NotificationBell />
           </div>
         )}
@@ -106,18 +126,18 @@ export function Nav() {
               aria-haspopup="true"
               className="flex items-center gap-2 rounded-full border-l border-white/10 py-1 pl-3 pr-2 transition-colors duration-300 hover:bg-white/[0.06]"
             >
-              {session?.user?.image && (
+              {avatarSrc && (
                 <Image
-                  src={session.user.image}
+                  src={avatarSrc}
                   alt=""
                   width={22}
                   height={22}
-                  className="rounded-full"
+                  className="h-[22px] w-[22px] rounded-full object-cover"
                   unoptimized
                 />
               )}
               <span className="max-w-[110px] truncate text-[13px] text-white/70">
-                {session?.user?.name ?? session?.user?.email}
+                {displayName}
               </span>
             </button>
 
@@ -125,7 +145,7 @@ export function Nav() {
               <div className="absolute right-0 top-full mt-2 w-56 rounded-card border border-fog bg-white p-1.5 shadow-panel">
                 <div className="px-3 py-2">
                   <p className="truncate text-[13px] font-medium text-carbon">
-                    {session?.user?.name ?? "Signed in"}
+                    {displayName ?? "Signed in"}
                   </p>
                   <p className="truncate text-[12px] text-ash">{session?.user?.email}</p>
                 </div>
@@ -136,6 +156,13 @@ export function Nav() {
                   className="block rounded-input px-3 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-mist hover:text-carbon"
                 >
                   Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  onClick={() => setMenuOpen(false)}
+                  className="block rounded-input px-3 py-2 text-[13px] font-medium text-graphite transition-colors hover:bg-mist hover:text-carbon"
+                >
+                  Profile &amp; Account
                 </Link>
                 <button
                   type="button"
@@ -154,6 +181,79 @@ export function Nav() {
             <AssessmentCTAButton size="sm">Request Demo</AssessmentCTAButton>
           </div>
         )}
+
+        {/* Mobile menu toggle + panel */}
+        <div ref={mobileRef} className="md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
+            aria-expanded={mobileOpen}
+            aria-haspopup="true"
+            aria-label="Open menu"
+            className="ml-1 flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              {mobileOpen ? (
+                <path d="M3 3l10 10M13 3L3 13" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+              ) : (
+                <path d="M2 4.5h12M2 8h12M2 11.5h12" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+              )}
+            </svg>
+          </button>
+
+          {mobileOpen && (
+            <div className="absolute left-1/2 top-full mt-2 w-[calc(100vw-2rem)] max-w-[360px] -translate-x-1/2 rounded-card border border-fog bg-white p-2 shadow-panel">
+              {isAuthed && (
+                <>
+                  <div className="px-3 py-2">
+                    <p className="truncate text-[13px] font-medium text-carbon">
+                      {displayName ?? "Signed in"}
+                    </p>
+                    <p className="truncate text-[12px] text-ash">{session?.user?.email}</p>
+                  </div>
+                  <div className="my-1 h-px bg-fog" aria-hidden />
+                </>
+              )}
+              {links.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-input px-3 py-2.5 text-[14px] font-medium text-graphite transition-colors hover:bg-mist hover:text-carbon"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              {isAuthed && (
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-input px-3 py-2.5 text-[14px] font-medium text-graphite transition-colors hover:bg-mist hover:text-carbon"
+                >
+                  Profile &amp; Account
+                </Link>
+              )}
+              <div className="my-1 h-px bg-fog" aria-hidden />
+              {isAuthed ? (
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="block w-full rounded-input px-3 py-2.5 text-left text-[14px] font-medium text-graphite transition-colors hover:bg-mist hover:text-carbon"
+                >
+                  Sign out
+                </button>
+              ) : (
+                <Link
+                  href="/signin"
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-input px-3 py-2.5 text-[14px] font-medium text-graphite transition-colors hover:bg-mist hover:text-carbon"
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </motion.nav>
     </div>
   );

@@ -1,6 +1,6 @@
 export * from "./types";
 export * from "./errors";
-export { API_BASE_URL } from "./config";
+export { API_BASE_URL, resolveAssetUrl } from "./config";
 export {
   createClaim,
   analyzeClaim,
@@ -17,5 +17,8 @@ export {
   markAllNotificationsRead,
   listVehicleManufacturers,
   listVehicleModels,
-  listVehicleVariants,
+  getMyProfile,
+  updateMyProfile,
+  uploadMyAvatar,
+  resetMyAvatar,
 } from "./client";

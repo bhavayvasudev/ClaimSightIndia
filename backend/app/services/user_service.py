@@ -20,6 +20,12 @@ async def upsert_from_google(
     name: Optional[str],
     avatar_url: Optional[str],
 ) -> UserRecord:
+    """First sign-in creates the user; later sign-ins refresh only the
+    provider-derived tier (email/name/avatar_url — see the field-tier
+    docstring on `UserRecord`). The user-customizable tier
+    (display_name, contact_email, custom_avatar_url) is deliberately
+    never written here: a Google re-sign-in must not overwrite what the
+    user chose in ClaimSight."""
     record = await repo.get_by_google_sub(google_sub)
     if record is None:
         return await repo.create(

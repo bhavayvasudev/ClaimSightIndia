@@ -7,7 +7,14 @@ import { PillButton } from "@/components/ui/PillButton";
 import { Reveal } from "@/components/ui/Reveal";
 import { SignInAgainButton } from "@/components/ui/SignInAgainButton";
 import { ApiError, listClaims, userFacingMessage, type ClaimListItem } from "@/lib/api";
-import { STATUS_GROUP, STATUS_GROUP_LABEL, STATUS_GROUP_ORDER, type StatusGroup } from "@/lib/claimStatusGroups";
+import {
+  STATUS_GROUP,
+  STATUS_GROUP_LABEL,
+  STATUS_GROUP_ORDER,
+  claimsForFilter,
+  type DashboardFilter,
+  type StatusGroup,
+} from "@/lib/claimStatusGroups";
 import { ClaimCard } from "./ClaimCard";
 
 type LoadState = "loading" | "ready" | "error";
@@ -17,7 +24,7 @@ type LoadState = "loading" | "ready" | "error";
  * Every count and card here comes from `GET /claims`, scoped server-side
  * to the signed-in user (see `backend/app/api/routes/claims.py:list_claims`).
  */
-type FilterValue = "all" | StatusGroup;
+type FilterValue = DashboardFilter;
 
 export function DashboardView() {
   const { data: session, status: sessionStatus } = useSession();
@@ -66,7 +73,10 @@ export function DashboardView() {
     counts[STATUS_GROUP[item.status]] += 1;
   }
 
-  const filteredItems = filter === "all" ? items : items.filter((item) => STATUS_GROUP[item.status] === filter);
+  // Failed claims live only in the Failed tab — the default feed and
+  // its "All Claims" count exclude them (see lib/claimStatusGroups.ts).
+  const filteredItems = claimsForFilter(items, filter);
+  const defaultFeedCount = items.length - counts.failed;
 
   return (
     <div className="mx-auto max-w-content px-6 pb-24 pt-32 md:px-8">
@@ -94,9 +104,25 @@ export function DashboardView() {
       </Reveal>
 
       {state === "loading" && (
-        <p className="mt-16 text-center text-[14px] tracking-body text-graphite">
-          Loading your claims…
-        </p>
+        <div aria-label="Loading your claims" className="mt-10">
+          <div className="hidden gap-3 md:grid md:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-[86px] animate-pulse rounded-card border border-fog bg-mist/50" />
+            ))}
+          </div>
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-card border border-fog bg-white">
+                <div className="aspect-[16/10] w-full animate-pulse bg-mist/60" />
+                <div className="space-y-3 p-5">
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-mist" />
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-mist/70" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-mist/70" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {state === "error" && (
@@ -132,7 +158,7 @@ export function DashboardView() {
             <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-2 md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0">
               <StatusMetric
                 label="All Claims"
-                value={items.length}
+                value={defaultFeedCount}
                 active={filter === "all"}
                 onClick={() => setFilter("all")}
               />

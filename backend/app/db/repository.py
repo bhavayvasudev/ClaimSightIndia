@@ -5,9 +5,9 @@ knows about `AsyncSession`/`select()` can change without touching callers.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.claim import ClaimRecord
@@ -93,6 +93,17 @@ class ClaimRepository:
             .offset(offset)
         )
         return list(result.scalars().all())
+
+    async def status_counts_for_user(self, user_id: int) -> Dict[str, int]:
+        """Claim counts grouped by status, ownership-scoped in the query
+        like every other user-facing read here. Powers the compact stats
+        on the profile page without loading full claim rows."""
+        result = await self._session.execute(
+            select(ClaimRecord.status, func.count(ClaimRecord.id))
+            .where(ClaimRecord.user_id == user_id)
+            .group_by(ClaimRecord.status)
+        )
+        return {status: count for status, count in result.all()}
 
     async def save(self, record: ClaimRecord) -> ClaimRecord:
         """Persist mutations the caller already made on `record` (status,

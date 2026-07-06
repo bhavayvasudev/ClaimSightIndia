@@ -1,99 +1,154 @@
 # ClaimSight India
 
-Multimodal AI-powered motor insurance claims triage copilot for Indian
-insurers. Ingests vehicle damage photos, policy PDFs, registration numbers,
-and free-text accident descriptions; produces a structured claim triage
-report via a LangGraph supervisor of specialist agents.
+AI-assisted motor insurance claims triage for the Indian market. A
+claimant signs in with Google, enters vehicle details, and uploads damage
+photos; ClaimSight validates the photos, detects damaged parts with a
+YOLO-based vision pipeline, estimates severity and an indicative INR
+repair range, optionally reads the claimant's policy document, and
+produces a structured claim report (in-app and PDF). Anything the system
+isn't confident about is routed for manual review instead of guessed at.
 
-Solo, one-month build. Prioritizes a working end-to-end pipeline over
-polish, while staying honest about production concerns: structured
-Pydantic contracts everywhere, graceful degradation when an agent fails,
-human review checkpoints on high-risk claims, and cost/latency
-observability built into the shared state from day one.
+Solo build. Prioritizes a working, honest end-to-end pipeline: structured
+Pydantic contracts everywhere, graceful degradation when a stage fails,
+and human review checkpoints on uncertain findings.
+
+## Current MVP features
+
+These work today, end to end:
+
+- **Google OAuth sign-in** (Auth.js/NextAuth on the frontend, exchanged
+  server-side for a backend-issued JWT; the only active auth provider)
+- **Persisted user profiles** and server-side claim ownership — every
+  claim route is authenticated, and users can only ever see their own claims
+- **Claim intake**: manufacturer → model → year, backed by a versioned
+  India passenger-vehicle catalog (category is derived from the model)
+- **Damage photo upload** with MIME/size/decode validation, and
+  **vehicle-presence validation** that rejects non-vehicle photos with
+  the exact filename and reason
+- **Real YOLO-based damage analysis** (separate FastAPI ai-service):
+  damaged-part detection, severity classification, confidence handling,
+  multi-image result merging, and Accepted / Review Required statuses
+- **Category-aware repair pricing** in INR — unpriced parts show
+  "Manual Inspection Required", never a fake ₹0
+- **Optional policy upload** (PDF/photo) with OCR/extraction, structured
+  policy facts (insurer, type, coverage dates, IDV, deductible,
+  exclusions — policy number always masked), and clause-grounded
+  coverage findings per damaged part
+- **Risk assessment** with neutral, explainable signals
+- **Claim timeline, notifications, claim history dashboard**
+- **Unified claim report** in-app and as a **PDF export** with the same
+  fields
+- **Reference vehicle images**: resolved per make/model via the
+  Wikimedia API (no API key), downloaded once, validated, stored and
+  served by the backend itself; a neutral category illustration is the
+  deliberate fallback. Never the claimant's own photos, never used in
+  analysis.
+
+Deliberate MVP behaviors:
+
+- Damage photos are processed for analysis and **not retained** — old
+  claims re-display their stored results, not the original photos.
+- Policy documents **are retained** so policy analysis can be re-displayed.
+- Repair figures are indicative estimates, not quotations, and coverage
+  findings reflect the uploaded policy's wording, not an insurer decision.
+
+## Future roadmap
+
+Documented, not implemented:
+
+- Number plate OCR and registration cross-checks
+- Richer policy RAG with clause-level citations in the UI
+- Advanced fraud intelligence beyond the current risk signals
+- Improved repair-cost models trained on real repair data
+- Workshop/region-aware pricing
+- Human surveyor review workflow (assignment, queues, sign-off)
+- Advanced agent orchestration
+- Model monitoring and drift analysis
+- Larger benchmark/evaluation datasets
 
 ## Repository layout
 
 ```
-backend/                   FastAPI + LangGraph + Pydantic
+backend/                    FastAPI application backend (:8000)
   app/
-    main.py                FastAPI entrypoint
+    main.py                 Entrypoint, middleware, CORS, security headers
     config.py               Settings (env-driven, pydantic-settings)
-    api/routes/              HTTP layer — claims intake, review, health
-    schemas/
-      claim_state.py         *** THE shared ClaimState — read this first ***
-    graph/
-      state.py                Re-exports ClaimState as the LangGraph state
-      supervisor.py            Graph wiring + conditional routing (next)
-      nodes/                   One file per agent (next)
-    services/
-      claude_client.py         Anthropic SDK wrapper, structured outputs
-      ocr_service.py           EasyOCR/PaddleOCR wrapper
-      vision_model.py          HF damage-detection model wrapper
-      rag/                     LlamaIndex ingestion + retrieval over policy PDFs
-      weather_api.py           Fraud cross-check
-      cost_model/               XGBoost training + inference
-      storage.py                Upload file persistence
-    db/                        SQLAlchemy models, pgvector tables
-    observability/              Langfuse client + tracing helpers
-  tests/
-    unit/test_claim_state.py    Schema contract tests — start here to see it run
+    api/routes/             claims, policy, reports, notifications,
+                            users, vehicle_catalog, vehicle_images
+    core/                   Auth (Google OIDC verify, backend JWT), rate limits
+    schemas/                Pydantic contracts (claim_state.py is the core one)
+    graph/                  Claim workflow orchestration + one node per stage
+    services/               ai_client, claim_service, policy (OCR/RAG),
+                            pricing (cost_model), risk, report (incl. PDF),
+                            vehicle_catalog, vehicle_reference, notifications
+    db/                     SQLAlchemy models + repositories
+  data/                     Persisted uploads (policies/) and vehicle_images/
+  tests/                    Unit + route-level integration tests
 
-evaluation/                 Golden dataset + regression harness + metrics
-frontend/                   Next.js dashboard (upload, description, report view)
-infra/                      docker-compose.yml, Postgres/pgvector init
-docs/                       architecture.md, decision_log.md (ADRs)
-scripts/                    dev_up.sh and one-off tooling
+ai-service/                 YOLO vision pipeline (FastAPI, :8500)
+frontend/                   Next.js 15 app (:3000) — Auth.js, dashboard,
+                            claim intake, claim report, docs
+scripts/                    dev_up.sh, check_frontend_secrets.py
+infra/                      docker-compose for Postgres/pgvector (optional;
+                            dev runs on SQLite out of the box)
+docs/                       architecture and decision notes
+evaluation/                 evaluation harness scaffolding
 ```
 
-## Why this shape
+## Quickstart (development)
 
-- **`schemas/claim_state.py` is the contract every agent, the API, the
-  frontend, and the evaluation harness all agree on.** It's written and
-  tested before any agent logic exists, on purpose — get the shared state
-  right first, and each agent becomes "read these fields, write that field."
-- **`graph/nodes/` mirrors the six agents in the spec 1:1** (vehicle
-  verification, policy, vision, cost estimation, fraud detection, report).
-  Each node file will import only the `ClaimState` slice it needs.
-- **`services/` holds anything that talks to the outside world** (Claude
-  API, OCR models, vector search, weather API, the XGBoost model). Nodes
-  stay thin — they call a service and map the result onto `ClaimState`.
-- **`evaluation/` and `observability/` exist from the start**, not bolted
-  on at the end, because `ClaimState.agent_runs` (latency, tokens, cost per
-  node) is designed to feed both simultaneously.
+Three processes run side by side: backend (:8000), ai-service (:8500) and
+frontend (:3000). The backend proxies claim analysis to the ai-service
+(`AI_SERVICE_URL`, default `http://localhost:8500`) — if the ai-service
+isn't running, `POST /claims/{id}/analyze` returns
+503 "AI service is currently unavailable" while everything else keeps
+working. Start the ai-service before exercising claim analysis.
 
-See `docs/architecture.md` for the graph diagram and data flow, and
-`docs/decision_log.md` for the reasoning behind specific schema choices
-(e.g. why money is `int` rupees, not formatted strings).
-
-## Quickstart
-
-```bash
-cp .env.example .env    # fill in ANTHROPIC_API_KEY at minimum
-./scripts/dev_up.sh     # starts Postgres+pgvector, backend (:8000), frontend (:3000)
-```
-
-Backend health check: `curl http://localhost:8000/health`
-
-Run the schema contract tests:
+Backend (SQLite by default, no external DB needed):
 
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest tests/unit/test_claim_state.py -v
+cp .env.example .env        # set AUTH_GOOGLE_ID + BACKEND_JWT_SECRET at minimum
+uvicorn app.main:app --port 8000
 ```
 
-## Status
+ai-service (YOLO models under ai-service/models/ — run from inside
+ai-service/, the model paths are relative to it):
 
-- [x] Repository structure
-- [x] Shared `ClaimState` schema (Pydantic, tested, JSON round-trip verified)
-- [ ] LangGraph supervisor wiring
-- [ ] Vehicle Verification Agent (OCR)
-- [ ] Policy Agent (RAG over policy PDF)
-- [ ] Vision Agent (damage detection)
-- [ ] Cost Estimation Agent (XGBoost)
-- [ ] Fraud Detection Agent
-- [ ] Report Agent
-- [ ] Human review checkpoint + API
-- [ ] Langfuse tracing
-- [ ] Evaluation framework + golden dataset
-- [ ] Frontend dashboard
+```bash
+cd ai-service
+pip install -r requirements.txt
+uvicorn main:app --port 8500
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local  # AUTH_SECRET, AUTH_GOOGLE_ID/SECRET, NEXT_PUBLIC_API_BASE_URL
+npm run dev                 # http://localhost:3000
+```
+
+Health checks: `GET :8000/health` (liveness), `GET :8000/ready`
+(DB reachability).
+
+## Tests and checks
+
+```bash
+cd backend && pytest                 # backend unit + integration tests
+cd frontend && npm test              # auth-callback regression tests (vitest)
+cd frontend && npx tsc --noEmit      # typecheck
+cd frontend && npm run lint
+cd frontend && npm run build
+python scripts/check_frontend_secrets.py   # no secrets in frontend source
+```
+
+## Notes
+
+- Secrets live in `backend/.env` / `frontend/.env.local` only. The single
+  `NEXT_PUBLIC_*` variable is the backend base URL, which is public by
+  design. The ai-service URL is backend-only.
+- No accuracy guarantees, regulatory approvals, or insurer partnerships
+  are claimed. ClaimSight assists triage; it does not adjudicate claims.

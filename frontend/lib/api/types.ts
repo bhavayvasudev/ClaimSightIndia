@@ -39,6 +39,51 @@ export const VEHICLE_CATEGORIES: VehicleCategory[] = [
 /** `ClaimRecordStatus` values (`backend/app/db/models/claim.py`). */
 export type ClaimStatus = "intake" | "analyzing" | "analysis_complete" | "review_required" | "failed";
 
+/** `ClaimStats` (`backend/app/schemas/user_api.py`) — compact per-user
+ * rollup for the profile page, grouped like the dashboard tabs. */
+export interface ProfileClaimStats {
+  total: number;
+  active: number;
+  under_review: number;
+  completed: number;
+  failed: number;
+}
+
+/**
+ * `UserProfileResponse` (`backend/app/schemas/user_api.py`). Two field
+ * tiers: provider-derived Google identity (email/name/avatar_url —
+ * read-only in ClaimSight) and user customizations (display_name/
+ * contact_email/custom_avatar_url — null means "use the Google value").
+ */
+export interface UserProfile {
+  id: number;
+  email: string;
+  name: string | null;
+  avatar_url: string | null;
+  display_name: string | null;
+  contact_email: string | null;
+  custom_avatar_url: string | null;
+  auth_provider: string;
+  created_at: string | null;
+  claim_stats: ProfileClaimStats | null;
+}
+
+/** PATCH /users/me body — omitted field = untouched, null = reset. */
+export interface ProfileUpdateInput {
+  display_name?: string | null;
+  contact_email?: string | null;
+}
+
+/** The name/avatar the UI should show for a profile: the user's
+ * customization when set, the Google-derived value otherwise. */
+export function effectiveDisplayName(profile: UserProfile): string {
+  return profile.display_name ?? profile.name ?? profile.email;
+}
+
+export function effectiveAvatarUrl(profile: UserProfile): string | null {
+  return profile.custom_avatar_url ?? profile.avatar_url;
+}
+
 /** `PartSeverity` (`backend/app/schemas/claim_state.py`). */
 export type PartSeverity = "Minor" | "Moderate" | "Severe" | "Uncertain";
 
@@ -123,6 +168,9 @@ export interface ClaimResponse {
   pricing_assessment: PricingAssessment | null;
   coverage_analysis: CoverageAnalysisResult | null;
   risk_assessment: RiskAssessment | null;
+  /** Generic reference image for this make/model/category — never the
+   * claimant's photographed vehicle. Present on `GET /claims/{id}`. */
+  vehicle_reference_image: VehicleReferenceImage | null;
   created_at: string;
   updated_at: string;
 }
@@ -285,7 +333,8 @@ export interface CreateClaimInput {
   vehicle_type: VehicleCategory;
   vehicle_make: string;
   vehicle_model: string;
-  vehicle_variant?: string;
+  // No vehicle_variant: removed from the claim UX (backend still accepts
+  // and stores it for backward compatibility with old claims).
   vehicle_year: number;
   // No user_id: the backend derives claim ownership from the
   // Authorization bearer token (see lib/api/client.ts's authHeaders),

@@ -49,7 +49,6 @@ async def _build_report(claim, policy_doc, db: AsyncSession) -> UnifiedClaimRepo
             model=claim.vehicle_model,
             year=claim.vehicle_year,
             vehicle_type=claim.vehicle_type,
-            variant=claim.vehicle_variant,
         )
         reference_image_url = reference.image_url if reference else None
 
@@ -101,7 +100,13 @@ async def get_claim_report_pdf(
     report = await _build_report(claim, policy_doc, db)
     timeline: list[TimelineStage] = build_timeline(claim, policy_doc)
 
-    pdf_bytes = generate_claim_report_pdf(report, timeline)
+    pdf_bytes = generate_claim_report_pdf(
+        report,
+        timeline,
+        claim_status=claim.status,
+        ai_assessment=claim.ai_assessment,
+        pricing_assessment=claim.pricing_assessment,
+    )
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

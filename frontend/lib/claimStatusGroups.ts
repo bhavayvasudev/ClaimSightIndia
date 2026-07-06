@@ -26,3 +26,22 @@ export const STATUS_GROUP_LABEL: Record<StatusGroup, string> = {
 };
 
 export const STATUS_GROUP_ORDER: StatusGroup[] = ["active", "under_review", "completed", "failed"];
+
+export type DashboardFilter = "all" | StatusGroup;
+
+/**
+ * The one place dashboard tab filtering is defined. The core invariant:
+ * failed claims are isolated to the Failed tab — the default feed shows
+ * every legitimate in-flight/finished claim but never a failed one
+ * (failed claims stay persisted and retryable; they're just not noise
+ * in the default view).
+ */
+export function claimsForFilter<T extends { status: ClaimStatus }>(
+  items: T[],
+  filter: DashboardFilter,
+): T[] {
+  if (filter === "all") {
+    return items.filter((item) => STATUS_GROUP[item.status] !== "failed");
+  }
+  return items.filter((item) => STATUS_GROUP[item.status] === filter);
+}

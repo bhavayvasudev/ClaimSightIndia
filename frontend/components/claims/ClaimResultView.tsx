@@ -2,16 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { Reveal } from "@/components/ui/Reveal";
 import { PillButton } from "@/components/ui/PillButton";
 import { SignInAgainButton } from "@/components/ui/SignInAgainButton";
+import { VehiclePlaceholder } from "@/components/dashboard/ClaimCard";
 import {
   ApiError,
   downloadClaimReportPdf,
   getClaim,
   getClaimReport,
   getClaimTimeline,
+  resolveAssetUrl,
   uploadPolicyDocument,
   userFacingMessage,
   type ClaimResponse,
@@ -202,15 +205,34 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
       <Reveal delay={0.05} className="mt-10">
         <div className="rounded-card border border-fog bg-white p-6 shadow-panel md:p-8">
           <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-ash">Vehicle</p>
-          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            <Field label="Category" value={claim.vehicle_type} />
-            <Field label="Make" value={claim.vehicle_make ?? "—"} />
-            <Field
-              label="Model"
-              value={claim.vehicle_variant ? `${claim.vehicle_model} ${claim.vehicle_variant}` : (claim.vehicle_model ?? "—")}
-            />
-            <Field label="Year" value={claim.vehicle_year ? String(claim.vehicle_year) : "—"} />
+          <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center">
+            <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-input bg-mist/40 md:w-[260px]">
+              {claim.vehicle_reference_image ? (
+                <Image
+                  src={resolveAssetUrl(claim.vehicle_reference_image.url)}
+                  alt={`Reference vehicle image: ${[claim.vehicle_make, claim.vehicle_model].filter(Boolean).join(" ") || claim.vehicle_type}`}
+                  fill
+                  unoptimized
+                  className={
+                    claim.vehicle_reference_image.source === "category_fallback"
+                      ? "object-contain p-5"
+                      : "object-cover"
+                  }
+                />
+              ) : (
+                <VehiclePlaceholder />
+              )}
+            </div>
+            <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">
+              <Field label="Category" value={claim.vehicle_type} />
+              <Field label="Make" value={claim.vehicle_make ?? "—"} />
+              <Field label="Model" value={claim.vehicle_model ?? "—"} />
+              <Field label="Year" value={claim.vehicle_year ? String(claim.vehicle_year) : "—"} />
+            </div>
           </div>
+          <p className="mt-4 text-[11px] tracking-body text-ash">
+            Reference image of this model line — not the submitted damage photos.
+          </p>
         </div>
       </Reveal>
 
@@ -248,6 +270,10 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
                 ` ${pricing.parts_pending_manual_inspection} additional part${
                   pricing.parts_pending_manual_inspection === 1 ? "" : "s"
                 } require manual inspection.`}
+            </p>
+            <p className="mt-3 text-[11px] leading-relaxed tracking-body text-ash">
+              Indicative estimate only — actual repair costs vary with location, workshop,
+              parts availability, taxes, labour, and vehicle condition. Not a final quotation.
             </p>
           </div>
         </Reveal>

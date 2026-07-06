@@ -16,7 +16,9 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.db.models.claim import ClaimRecord
+from app.db.models.vehicle_reference import VehicleReferenceImageRecord
 from app.schemas.claim_state import VehicleCategory
+from app.schemas.dashboard_api import VehicleReferenceImage
 
 # A car's manufacture year predates any policy this system prices, and the
 # upper bound allows next model-year vehicles that dealers routinely sell
@@ -115,11 +117,22 @@ class ClaimResponse(BaseModel):
     risk_assessment: Optional[dict] = Field(
         default=None, description="RiskAssessment — present once the claim workflow has run at least once"
     )
+    vehicle_reference_image: Optional[VehicleReferenceImage] = Field(
+        default=None,
+        description=(
+            "Generic reference image of this vehicle's make/model/category — never the "
+            "claimant's photographed vehicle. See app/services/vehicle_reference.py."
+        ),
+    )
     created_at: datetime
     updated_at: datetime
 
     @classmethod
-    def from_record(cls, record: ClaimRecord) -> "ClaimResponse":
+    def from_record(
+        cls,
+        record: ClaimRecord,
+        reference_image: Optional[VehicleReferenceImageRecord] = None,
+    ) -> "ClaimResponse":
         return cls(
             id=record.claim_id,
             status=record.status,
@@ -134,6 +147,9 @@ class ClaimResponse(BaseModel):
             pricing_assessment=record.pricing_assessment,
             coverage_analysis=record.coverage_analysis,
             risk_assessment=record.risk_assessment,
+            vehicle_reference_image=(
+                VehicleReferenceImage.from_record(reference_image) if reference_image else None
+            ),
             created_at=record.created_at,
             updated_at=record.updated_at,
         )

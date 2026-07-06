@@ -112,7 +112,6 @@ async def list_claims(
                 model=record.vehicle_model,
                 year=record.vehicle_year,
                 vehicle_type=record.vehicle_type,
-                variant=record.vehicle_variant,
             )
         policy_document = await policy_repo.get_by_claim_id(record.id)
         items.append(ClaimListItem.from_record(record, reference_image, policy_document))
@@ -245,4 +244,14 @@ async def get_claim(
     record = await repo.get_by_claim_id_for_user(claim_id, current_user.id)
     if record is None:
         raise HTTPException(status_code=404, detail="Claim not found.")
-    return ClaimResponse.from_record(record)
+
+    reference_image = None
+    if record.vehicle_make and record.vehicle_model:
+        reference_image = await resolve_vehicle_reference_image(
+            VehicleReferenceImageRepository(db),
+            make=record.vehicle_make,
+            model=record.vehicle_model,
+            year=record.vehicle_year,
+            vehicle_type=record.vehicle_type,
+        )
+    return ClaimResponse.from_record(record, reference_image)

@@ -34,18 +34,22 @@ function isSupportedPolicyFile(file: File): boolean {
 
 type Phase = "form" | "creating" | "analyzing" | "error";
 
-// Truthful, sequential stage messages — not tied to any real backend
-// progress signal (the current API has no progress endpoint), so these
-// only ever describe what stage of a single long-running request is
-// conceptually happening, never an exact percentage.
+// Truthful, sequential stage messages mirroring what the backend +
+// ai-service genuinely do during one /analyze request (upload →
+// vehicle-presence validation → YOLO damage analysis → part matching →
+// category-aware pricing → persistence). Not tied to a live progress
+// signal (the current API has no progress endpoint), so these advance on
+// a timer and hold at the last stage — never a fabricated percentage.
 const ANALYSIS_STAGES = [
-  "Uploading vehicle images",
+  "Uploading images",
+  "Validating vehicle photos",
   "Analyzing visible damage",
-  "Matching damage to vehicle parts",
-  "Preparing assessment",
+  "Matching damaged vehicle parts",
+  "Preparing repair estimate",
+  "Finalizing assessment",
 ];
 
-const STAGE_INTERVAL_MS = 1800;
+const STAGE_INTERVAL_MS = 2200;
 
 // Mirrors the backend contract (`ClaimCreateRequest` in
 // `backend/app/schemas/claim_api.py`) — never stricter than it.
@@ -78,8 +82,6 @@ export function ClaimIntakeForm() {
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelId, setModelId] = useState<string | null>(null);
 
-  const [variant, setVariant] = useState<string | null>(null);
-
   const [vehicleYear, setVehicleYear] = useState("");
 
   // Loaded once — the catalog is public reference data shared by every
@@ -101,11 +103,10 @@ export function ClaimIntakeForm() {
     };
   }, []);
 
-  // Changing manufacturer clears the selected model and variant — a model
-  // id from a different manufacturer's list is never valid here.
+  // Changing manufacturer clears the selected model — a model id from a
+  // different manufacturer's list is never valid here.
   useEffect(() => {
     setModelId(null);
-    setVariant(null);
     if (!manufacturerId) {
       setModels([]);
       return;
@@ -129,12 +130,6 @@ export function ClaimIntakeForm() {
 
   const selectedManufacturer = manufacturers.find((mf) => mf.id === manufacturerId) ?? null;
   const selectedModel = models.find((mdl) => mdl.id === modelId) ?? null;
-
-  // Changing model clears any previously selected variant — a variant
-  // name from a different model is never valid here.
-  useEffect(() => {
-    setVariant(null);
-  }, [modelId]);
 
   const [images, setImages] = useState<File[]>([]);
   const [rejectedCount, setRejectedCount] = useState(0);
@@ -163,8 +158,24 @@ export function ClaimIntakeForm() {
   function handleImages(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     const accepted = files.filter(isSupportedImageFile);
-    setImages(accepted);
+    // Append to (never replace) the current selection, de-duplicated by
+    // name+size — picking a second batch must not silently drop the first.
+    setImages((current) => {
+      const seen = new Set(current.map((f) => `${f.name}|${f.size}`));
+      return [...current, ...accepted.filter((f) => !seen.has(`${f.name}|${f.size}`))];
+    });
     setRejectedCount(files.length - accepted.length);
+    // Reset the input so selecting the same file again re-fires onChange.
+    e.target.value = "";
+  }
+
+  function removeImage(index: number) {
+    setImages((current) => current.filter((_, i) => i !== index));
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   }
 
   function handlePolicyFile(e: ChangeEvent<HTMLInputElement>) {
@@ -254,7 +265,6 @@ export function ClaimIntakeForm() {
           vehicle_type: selectedModel.category,
           vehicle_make: selectedManufacturer.name,
           vehicle_model: selectedModel.name,
-          vehicle_variant: variant ?? undefined,
           vehicle_year: parsedYear,
         },
         session?.backendAccessToken
@@ -309,40 +319,6 @@ export function ClaimIntakeForm() {
           >
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label className="block text-[12px] font-medium uppercase tracking-[0.08em] text-graphite">
-                  Vehicle category
-                </label>
-                <div className="mt-3 w-full rounded-input border border-fog bg-mist/40 px-4 py-3 text-[15px] tracking-body text-carbon">
-                  {selectedModel ? selectedModel.category : "Select a model to auto-detect"}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="vehicle_year"
-                  className="block text-[12px] font-medium uppercase tracking-[0.08em] text-graphite"
-                >
-                  Manufacture year
-                </label>
-                <input
-                  id="vehicle_year"
-                  type="number"
-                  inputMode="numeric"
-                  required
-                  value={vehicleYear}
-                  onChange={(e) => setVehicleYear(e.target.value)}
-                  disabled={vehicleFieldsLocked}
-                  placeholder="e.g. 2023"
-                  className="mt-3 w-full rounded-input border border-fog bg-white px-4 py-3 text-[15px] tracking-body text-carbon placeholder:text-ash focus:border-lavender focus:outline-none focus:ring-2 focus:ring-lavender/20 disabled:opacity-60"
-                />
-                {missingYear && vehicleYear.trim() !== "" && (
-                  <p className="mt-1.5 text-[12px] text-ash">
-                    Enter a year between {MIN_VEHICLE_YEAR} and {MAX_VEHICLE_YEAR}.
-                  </p>
-                )}
-              </div>
-
-              <div>
                 <SearchableSelect
                   id="vehicle_manufacturer"
                   label="Manufacturer"
@@ -379,22 +355,37 @@ export function ClaimIntakeForm() {
               </div>
 
               <div>
-                <SearchableSelect
-                  id="vehicle_variant"
-                  label="Variant / Trim — Optional"
-                  placeholder={
-                    !selectedModel
-                      ? "Select a model first"
-                      : selectedModel.variants.length === 0
-                        ? "No variant data available"
-                        : "Search or select variant"
-                  }
-                  value={variant}
-                  onChange={setVariant}
-                  disabled={vehicleFieldsLocked || !selectedModel || selectedModel.variants.length === 0}
-                  emptyMessage="No results."
-                  options={(selectedModel?.variants ?? []).map((v) => ({ id: v, label: v }))}
+                <label
+                  htmlFor="vehicle_year"
+                  className="block text-[12px] font-medium uppercase tracking-[0.08em] text-graphite"
+                >
+                  Manufacture year
+                </label>
+                <input
+                  id="vehicle_year"
+                  type="number"
+                  inputMode="numeric"
+                  required
+                  value={vehicleYear}
+                  onChange={(e) => setVehicleYear(e.target.value)}
+                  disabled={vehicleFieldsLocked}
+                  placeholder="e.g. 2023"
+                  className="mt-3 w-full rounded-input border border-fog bg-white px-4 py-3 text-[15px] tracking-body text-carbon placeholder:text-ash focus:border-lavender focus:outline-none focus:ring-2 focus:ring-lavender/20 disabled:opacity-60"
                 />
+                {missingYear && vehicleYear.trim() !== "" && (
+                  <p className="mt-1.5 text-[12px] text-ash">
+                    Enter a year between {MIN_VEHICLE_YEAR} and {MAX_VEHICLE_YEAR}.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium uppercase tracking-[0.08em] text-graphite">
+                  Vehicle category
+                </label>
+                <div className="mt-3 w-full rounded-input border border-fog bg-mist/40 px-4 py-3 text-[15px] tracking-body text-carbon">
+                  {selectedModel ? selectedModel.category : "Detected from the selected model"}
+                </div>
               </div>
             </div>
 
@@ -403,13 +394,36 @@ export function ClaimIntakeForm() {
                 label="Damage photos"
                 hint={
                   images.length
-                    ? `${images.length} photo(s) selected`
+                    ? `${images.length} photo${images.length === 1 ? "" : "s"} selected — click to add more`
                     : "Click to upload one or more photos"
                 }
                 accept="image/jpeg,image/png,image/webp"
                 multiple
+                disabled={vehicleFieldsLocked}
                 onChange={handleImages}
               />
+              {images.length > 0 && (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {images.map((file, index) => (
+                    <li
+                      key={`${file.name}|${file.size}`}
+                      className="inline-flex max-w-full items-center gap-2 rounded-full border border-fog bg-mist/40 py-1 pl-3 pr-1.5 text-[12px] tracking-body text-graphite"
+                    >
+                      <span className="max-w-[220px] truncate">{file.name}</span>
+                      <span className="shrink-0 text-ash">{formatFileSize(file.size)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        disabled={vehicleFieldsLocked}
+                        aria-label={`Remove ${file.name}`}
+                        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ash transition-colors hover:bg-fog hover:text-carbon disabled:opacity-50"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {rejectedCount > 0 && (
                 <p className="mt-2 text-[13px] text-ember">
                   {rejectedCount} file(s) were skipped — only JPEG, PNG, or WebP images are
@@ -435,6 +449,7 @@ export function ClaimIntakeForm() {
                   label="Policy document"
                   hint={policyFile ? policyFile.name : "Click to upload a PDF or photo of your policy"}
                   accept={POLICY_ACCEPT}
+                  disabled={vehicleFieldsLocked}
                   onChange={handlePolicyFile}
                 />
                 {policyFileRejected && (
@@ -501,12 +516,37 @@ export function ClaimIntakeForm() {
                   className="overflow-hidden"
                 >
                   <div className="mt-10 border-t border-fog pt-8">
-                    <div className="flex items-center justify-center gap-2.5">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lavender" />
-                      <span className="text-[13px] font-medium tracking-body text-graphite">
-                        {ANALYSIS_STAGES[stageIndex]}
-                      </span>
-                    </div>
+                    <ul className="mx-auto flex w-fit flex-col gap-2.5">
+                      {ANALYSIS_STAGES.map((stage, index) => (
+                        <li key={stage} className="flex items-center gap-2.5">
+                          {index < stageIndex ? (
+                            <span className="flex h-4 w-4 items-center justify-center text-[11px] text-mint">✓</span>
+                          ) : index === stageIndex ? (
+                            <span className="flex h-4 w-4 items-center justify-center">
+                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lavender" />
+                            </span>
+                          ) : (
+                            <span className="flex h-4 w-4 items-center justify-center">
+                              <span className="h-1 w-1 rounded-full bg-fog" />
+                            </span>
+                          )}
+                          <span
+                            className={`text-[13px] tracking-body ${
+                              index === stageIndex
+                                ? "font-medium text-carbon"
+                                : index < stageIndex
+                                  ? "text-graphite"
+                                  : "text-ash"
+                            }`}
+                          >
+                            {stage}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-5 text-center text-[12px] tracking-body text-ash">
+                      Analysis usually completes within a minute. Keep this page open.
+                    </p>
                   </div>
                 </motion.div>
               )}

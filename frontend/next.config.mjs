@@ -20,7 +20,10 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https:",
+  // `https:` covers Google profile avatars; the explicit backend origin
+  // matters when it isn't https (reference vehicle images are served
+  // from the backend's /vehicle-images/ route — see lib/api/config.ts).
+  `img-src 'self' data: https: ${backendOrigin}`,
   `connect-src 'self' ${backendOrigin}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",

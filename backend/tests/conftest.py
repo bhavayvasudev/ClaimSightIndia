@@ -11,6 +11,7 @@ against the same in-memory rate-limit storage.
 from __future__ import annotations
 
 import os
+import tempfile
 
 # Must run before anything imports app.config (get_settings() is
 # lru_cache'd — whatever it reads first sticks for the whole test
@@ -18,6 +19,12 @@ import os
 # here ever talks to a real Google/production system, so a fixed test
 # value is fine and keeps every test's issued/verified tokens consistent.
 os.environ.setdefault("BACKEND_JWT_SECRET", "test-only-secret-do-not-use-in-production")
+# No test may ever perform a live network call — the Wikimedia reference
+# image tier is disabled process-wide; tests exercise it via fakes.
+os.environ.setdefault("VEHICLE_IMAGE_REMOTE_LOOKUP_ENABLED", "false")
+# Avatar uploads (tests/integration/test_users_api.py) write real files —
+# keep them in a throwaway per-session directory, never backend/data/.
+os.environ.setdefault("AVATAR_DIR", tempfile.mkdtemp(prefix="claimsight-test-avatars-"))
 
 import pytest  # noqa: E402
 

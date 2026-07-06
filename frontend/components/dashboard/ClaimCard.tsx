@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { ClaimListItem } from "@/lib/api";
+import { resolveAssetUrl, type ClaimListItem } from "@/lib/api";
 import { CLAIM_STATUS_LABEL, CLAIM_STATUS_TONE, formatInrRange } from "@/lib/formatting";
 
 /**
@@ -11,6 +11,28 @@ import { CLAIM_STATUS_LABEL, CLAIM_STATUS_TONE, formatInrRange } from "@/lib/for
  * there is no "real" evidence photo this could be confused with; this
  * card must never imply otherwise.
  */
+/** Deliberate placeholder when no reference image resolved at all —
+ * a neutral vehicle glyph, never a broken-image icon. */
+export function VehiclePlaceholder() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-ash">
+      <svg width="44" height="28" viewBox="0 0 44 28" fill="none" aria-hidden>
+        <path
+          d="M4 20h-2v-5l4-2 4-8h18l7 8h6l1 4v3h-3"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy="21" r="4" stroke="currentColor" strokeWidth="1.6" />
+        <circle cx="32" cy="21" r="4" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M16 21h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      <span className="text-[12px] tracking-body">Vehicle image unavailable</span>
+    </div>
+  );
+}
+
 export function ClaimCard({ item }: { item: ClaimListItem }) {
   const vehicleTitle =
     [item.vehicle_make, item.vehicle_model].filter(Boolean).join(" ") || item.vehicle_type;
@@ -26,16 +48,18 @@ export function ClaimCard({ item }: { item: ClaimListItem }) {
       <div className="relative aspect-[16/10] w-full shrink-0 bg-mist/40">
         {item.vehicle_reference_image ? (
           <Image
-            src={item.vehicle_reference_image.url}
+            src={resolveAssetUrl(item.vehicle_reference_image.url)}
             alt={`Reference vehicle image: ${vehicleTitle}`}
             fill
             unoptimized
-            className="object-contain p-6"
+            className={
+              item.vehicle_reference_image.source === "category_fallback"
+                ? "object-contain p-6"
+                : "object-cover"
+            }
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[13px] tracking-body text-ash">
-            No reference image
-          </div>
+          <VehiclePlaceholder />
         )}
       </div>
 

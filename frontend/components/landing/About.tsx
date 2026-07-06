@@ -47,10 +47,15 @@ export function About() {
           <p className="mx-auto mt-6 max-w-copy text-[16px] leading-relaxed tracking-body text-graphite">
             A single motor claim touches damage assessment, repair estimation, policy
             interpretation, and manual review — and today those stages usually happen separately,
-            by different people, with no shared view of the evidence. ClaimSight brings them into
-            one structured workflow: AI handles the first pass of triage and assistance, and
-            anything it isn&rsquo;t confident about is deliberately escalated for a human to look
-            at, rather than guessed at.
+            by different people, with no shared view of the evidence. ClaimSight India brings them
+            into one structured workflow.
+          </p>
+          <p className="mx-auto mt-4 max-w-copy text-[16px] leading-relaxed tracking-body text-graphite">
+            It turns vehicle damage photos into a structured first-pass assessment: it identifies
+            visibly damaged areas, maps them to specific vehicle parts, estimates severity and an
+            indicative repair range priced for the Indian market, and flags anything uncertain for
+            human review instead of guessing. Attach a policy document and the claim report also
+            relates each finding to the policy&rsquo;s own wording.
           </p>
         </Reveal>
 
@@ -103,10 +108,10 @@ export function About() {
         <Reveal delay={0.1} className="mt-16 flex flex-col items-center gap-2 border-t border-fog pt-8 text-center">
           <p className="text-[13px] tracking-body text-ash">Questions about ClaimSight?</p>
           <a
-            href="mailto:hello@claimsight.in"
+            href="mailto:claimsightindia@gmail.com"
             className="text-[14px] font-medium text-graphite transition-colors hover:text-carbon"
           >
-            hello@claimsight.in
+            claimsightindia@gmail.com
           </a>
         </Reveal>
       </div>

@@ -13,8 +13,10 @@ import type {
   NotificationItem,
   NotificationListResponse,
   PolicyDocumentResponse,
+  ProfileUpdateInput,
   TimelineResponse,
   UnifiedClaimReport,
+  UserProfile,
   VehicleCatalogModel,
   VehicleManufacturer,
 } from "./types";
@@ -187,6 +189,43 @@ export function markAllNotificationsRead(token: string | undefined): Promise<{ s
   });
 }
 
+/** The signed-in user's own profile — identity always derives from the
+ * bearer token server-side; there is no user-id parameter to pass. */
+export function getMyProfile(token: string | undefined): Promise<UserProfile> {
+  return request<UserProfile>("/users/me", {
+    headers: authHeaders(token),
+  });
+}
+
+export function updateMyProfile(
+  input: ProfileUpdateInput,
+  token: string | undefined
+): Promise<UserProfile> {
+  return request<UserProfile>("/users/me", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify(input),
+  });
+}
+
+export function uploadMyAvatar(file: File, token: string | undefined): Promise<UserProfile> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request<UserProfile>("/users/me/avatar", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: formData,
+  });
+}
+
+/** "Use Google photo" — clears the custom avatar server-side. */
+export function resetMyAvatar(token: string | undefined): Promise<UserProfile> {
+  return request<UserProfile>("/users/me/avatar", {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+}
+
 /** Public reference data — no bearer token, same for every caller. */
 export function listVehicleManufacturers(): Promise<VehicleManufacturer[]> {
   return request<VehicleManufacturer[]>("/vehicle-catalog/manufacturers");
@@ -198,8 +237,6 @@ export function listVehicleModels(manufacturerId: string): Promise<VehicleCatalo
   );
 }
 
-export function listVehicleVariants(manufacturerId: string, modelId: string): Promise<string[]> {
-  return request<string[]>(
-    `/vehicle-catalog/manufacturers/${encodeURIComponent(manufacturerId)}/models/${encodeURIComponent(modelId)}/variants`
-  );
-}
+// No variant/trim client call: variant selection was removed from the
+// claim flow (manufacturer → model → year). The backend catalog may
+// retain variant data internally, but the claim UX never depends on it.

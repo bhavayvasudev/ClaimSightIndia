@@ -6,9 +6,15 @@ testable (override via `Settings(**overrides)` in tests).
 """
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# backend/ — the directory containing app/. Used to anchor relative
+# storage paths so persisted files (policy uploads, vehicle reference
+# images) land in the same place regardless of the process's CWD.
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -35,6 +41,21 @@ class Settings(BaseSettings):
 
     # File storage
     upload_dir: str = Field(default="./data/uploads")
+
+    # Reference vehicle images resolved by
+    # app/services/vehicle_reference.py: downloaded once, validated, and
+    # stored here, then served from the backend's own /vehicle-images/
+    # route — never hotlinked from a third-party host by the frontend.
+    vehicle_image_dir: str = Field(default="./data/vehicle_images")
+
+    # User-uploaded profile avatars (app/api/routes/users.py), stored with
+    # server-generated content-addressed names and served from the public
+    # /avatars/ route. Only avatar objects ever land here — claim damage
+    # photos and policy documents live under upload_dir and stay private.
+    avatar_dir: str = Field(default="./data/avatars")
+    # Master switch for the Wikimedia lookup tier. Tests disable it so no
+    # unit/integration test ever performs a live network call.
+    vehicle_image_remote_lookup_enabled: bool = Field(default=True)
 
     # ai-service (YOLO car-parts + damage-segmentation pipeline). Never
     # hardcode this elsewhere — services/ai_client.py is the only caller.
@@ -76,6 +97,19 @@ class Settings(BaseSettings):
     @property
     def cors_allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def _anchor_storage_paths(self) -> "Settings":
+        """User-visible persistent assets must never depend on the CWD the
+        server happened to start from — a restart from a different
+        directory would otherwise silently 'lose' previously stored
+        files. Absolute paths (e.g. from tests or deployment env) pass
+        through untouched."""
+        for field in ("upload_dir", "vehicle_image_dir", "avatar_dir"):
+            value = Path(getattr(self, field))
+            if not value.is_absolute():
+                setattr(self, field, str((_BACKEND_ROOT / value).resolve()))
+        return self
 
     @model_validator(mode="after")
     def _require_secrets_in_production(self) -> "Settings":

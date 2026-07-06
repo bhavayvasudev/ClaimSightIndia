@@ -54,7 +54,6 @@ export function Footer() {
               { label: "How it works", href: "/#workflow" },
               { label: "About", href: "/#about" },
               { label: "Docs", href: "/docs" },
-              { label: "View Interactive Preview", href: "/demo" },
             ].map((item) => (
               <a
                 key={item.href}

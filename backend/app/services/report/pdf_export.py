@@ -17,6 +17,16 @@ from fpdf import FPDF, XPos, YPos
 
 from app.schemas.policy_state import TimelineStage, UnifiedClaimReport
 
+# Mirrors the frontend's CLAIM_STATUS_LABEL (frontend/lib/formatting.ts)
+# so the PDF and the in-app view always name a status the same way.
+_STATUS_LABELS = {
+    "intake": "Awaiting Analysis",
+    "analyzing": "Analysis In Progress",
+    "analysis_complete": "Analysis Complete",
+    "review_required": "Review Required",
+    "failed": "Assessment Failed",
+}
+
 _DISCLAIMER = (
     "Repair cost estimates in this report are preliminary and indicative, not a final "
     "insurer-approved figure. AI analysis assists claim triage; results depend on photo "
@@ -55,12 +65,26 @@ class _ReportPDF(FPDF):
         self.multi_cell(0, 6, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
 
-def generate_claim_report_pdf(report: UnifiedClaimReport, timeline: list[TimelineStage]) -> bytes:
+def generate_claim_report_pdf(
+    report: UnifiedClaimReport,
+    timeline: list[TimelineStage],
+    *,
+    claim_status: str | None = None,
+    ai_assessment: dict | None = None,
+    pricing_assessment: dict | None = None,
+) -> bytes:
+    """`ai_assessment`/`pricing_assessment` are the claim's persisted
+    payloads, used only for the per-part detail table (part, severity,
+    status, action, estimate). Raw model confidence values are present in
+    those dicts but deliberately never rendered — `status` is the
+    user-facing signal, exactly as in the in-app report."""
     pdf = _ReportPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
     pdf.kv("Claim ID:", report.claim_id)
+    if claim_status:
+        pdf.kv("Claim status:", _STATUS_LABELS.get(claim_status, claim_status.replace("_", " ").title()))
     pdf.kv("Generated:", datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"))
     pdf.ln(3)
 
@@ -82,6 +106,34 @@ def generate_claim_report_pdf(report: UnifiedClaimReport, timeline: list[Timelin
         pdf.kv("Recommended actions:", ", ".join(report.damage.recommended_actions))
     pdf.ln(3)
 
+    damaged_parts = (ai_assessment or {}).get("damaged_parts") or []
+    per_part_pricing = (pricing_assessment or {}).get("per_part") or {}
+    if damaged_parts:
+        pdf.section_title("Damaged Parts")
+        for part in damaged_parts:
+            name = part.get("part", "Unknown part")
+            severity = part.get("severity", "-")
+            status = part.get("status", "-")
+            action = part.get("recommended_action", "-")
+            estimate = per_part_pricing.get(name)
+            if estimate and estimate.get("min_inr") is not None:
+                estimate_text = f"Rs. {estimate['min_inr']:,} - Rs. {estimate['max_inr']:,}"
+            else:
+                # Unpriced parts are never rendered as a zero-cost line.
+                estimate_text = "Manual inspection required"
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.multi_cell(0, 6, name, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.multi_cell(
+                0,
+                5,
+                f"  Severity: {severity}  |  Status: {status}  |  Action: {action}  |  Estimate: {estimate_text}",
+                new_x=XPos.LMARGIN,
+                new_y=YPos.NEXT,
+            )
+            pdf.ln(1)
+        pdf.ln(2)
+
     pdf.section_title("Repair Estimate")
     if report.pricing.parts_priced > 0 and report.pricing.total_min_inr is not None:
         pdf.kv(
@@ -96,6 +148,29 @@ def generate_claim_report_pdf(report: UnifiedClaimReport, timeline: list[Timelin
 
     pdf.section_title("Policy Analysis")
     pdf.kv("Status:", report.policy.state.value.replace("_", " ").title())
+    if report.policy.insurer_name:
+        pdf.kv("Insurer:", report.policy.insurer_name)
+    if report.policy.policy_type:
+        pdf.kv("Policy type:", report.policy.policy_type.value)
+    if report.policy.policy_number_masked:
+        # Only ever the masked form — the full policy number never
+        # reaches UnifiedClaimReport (see app/schemas/policy_state.py).
+        pdf.kv("Policy number:", report.policy.policy_number_masked)
+    if report.policy.coverage_start or report.policy.coverage_end:
+        start = report.policy.coverage_start.strftime("%d %b %Y") if report.policy.coverage_start else "-"
+        end = report.policy.coverage_end.strftime("%d %b %Y") if report.policy.coverage_end else "-"
+        pdf.kv("Coverage period:", f"{start} to {end}")
+    if report.policy.policy_vehicle_make or report.policy.policy_vehicle_model:
+        policy_vehicle = " ".join(
+            str(v)
+            for v in (
+                report.policy.policy_vehicle_make,
+                report.policy.policy_vehicle_model,
+                report.policy.policy_vehicle_year,
+            )
+            if v
+        )
+        pdf.kv("Vehicle on policy:", policy_vehicle)
     if report.policy.coverage:
         pdf.kv("Overall coverage interpretation:", report.policy.coverage.overall_status.value.replace("_", " ").title())
         pdf.body_text(report.policy.coverage.summary)

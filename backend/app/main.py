@@ -15,12 +15,14 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.api.routes.avatars import router as avatars_router
 from app.api.routes.claims import router as claims_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.policy import router as policy_router
 from app.api.routes.reports import router as reports_router
 from app.api.routes.users import router as users_router
 from app.api.routes.vehicle_catalog import router as vehicle_catalog_router
+from app.api.routes.vehicle_images import router as vehicle_images_router
 from app.config import get_settings
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.db.base import Base
@@ -64,7 +66,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    # PATCH/DELETE: profile updates and avatar reset (/users/me routes).
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -113,6 +116,8 @@ app.include_router(reports_router)
 app.include_router(notifications_router)
 app.include_router(users_router)
 app.include_router(vehicle_catalog_router)
+app.include_router(vehicle_images_router)
+app.include_router(avatars_router)
 
 
 @app.exception_handler(Exception)

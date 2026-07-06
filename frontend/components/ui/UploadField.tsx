@@ -7,6 +7,7 @@ type UploadFieldProps = {
   hint: string;
   accept: string;
   multiple?: boolean;
+  disabled?: boolean;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -18,7 +19,7 @@ type UploadFieldProps = {
  * never real `File` objects). This version is shared by the real claim
  * intake flow, which needs actual files to upload.
  */
-export function UploadField({ label, hint, accept, multiple, onChange }: UploadFieldProps) {
+export function UploadField({ label, hint, accept, multiple, disabled, onChange }: UploadFieldProps) {
   const inputId = label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return (
     <div>
@@ -30,7 +31,9 @@ export function UploadField({ label, hint, accept, multiple, onChange }: UploadF
       </label>
       <label
         htmlFor={inputId}
-        className="mt-3 flex h-[120px] cursor-pointer flex-col items-center justify-center rounded-input border border-dashed border-fog bg-linen px-4 text-center transition-colors hover:border-lavender"
+        className={`mt-3 flex h-[120px] flex-col items-center justify-center rounded-input border border-dashed border-fog bg-linen px-4 text-center transition-colors ${
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-lavender"
+        }`}
       >
         <span className="text-[14px] tracking-body text-graphite">{hint}</span>
       </label>
@@ -39,6 +42,7 @@ export function UploadField({ label, hint, accept, multiple, onChange }: UploadF
         type="file"
         accept={accept}
         multiple={multiple}
+        disabled={disabled}
         onChange={onChange}
         className="sr-only"
       />
