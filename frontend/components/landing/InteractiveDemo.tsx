@@ -54,15 +54,27 @@ export function InteractiveDemo() {
   }
 
   return (
-    <section id="demo" className="border-t border-fog bg-white">
-      <div className="mx-auto flex min-h-screen max-w-content flex-col items-center justify-center px-6 py-24 md:px-8">
+    <section id="demo" className="relative bg-white">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[4%] h-[420px] w-[680px] -translate-x-1/2 rounded-full bg-lavender/[0.1] blur-[130px]" />
+      </div>
+      <div className="relative mx-auto flex min-h-screen max-w-content flex-col items-center justify-center px-6 pb-24 pt-32 md:px-8">
         <Reveal className="text-center">
-          <SectionLabel>Live demo</SectionLabel>
+          <SectionLabel>Interactive preview · sample data</SectionLabel>
         </Reveal>
         <Reveal delay={0.1} className="text-center">
-          <h2 className="mx-auto mt-6 max-w-[680px] text-[34px] font-semibold leading-[1.15] tracking-display text-carbon sm:text-[44px] md:text-[52px]">
+          <h1 className="mx-auto mt-6 max-w-[680px] text-balance text-[34px] font-semibold leading-[1.12] tracking-display text-carbon sm:text-[44px] md:text-[54px]">
             Watch a triage report take shape.
-          </h2>
+          </h1>
+        </Reveal>
+        <Reveal delay={0.18} className="text-center">
+          <p className="mx-auto mt-6 max-w-copy text-[16px] leading-relaxed tracking-body text-graphite">
+            Add the claim artefacts below and run the pipeline — six agents read them together
+            and hand back one structured report.
+          </p>
+          <p className="mx-auto mt-3 max-w-copy text-[13px] font-medium tracking-body text-ember">
+            This is a simulation with sample data, not connected to the real assessment service.
+          </p>
         </Reveal>
 
         <Reveal delay={0.2} className="w-full">

@@ -3,8 +3,8 @@ import { Hero } from "@/components/landing/Hero";
 import { Problem } from "@/components/landing/Problem";
 import { Workflow } from "@/components/landing/Workflow";
 import { AgentSystem } from "@/components/landing/AgentSystem";
-import { InteractiveDemo } from "@/components/landing/InteractiveDemo";
 import { Metrics } from "@/components/landing/Metrics";
+import { About } from "@/components/landing/About";
 import { Footer } from "@/components/landing/Footer";
 
 export default function HomePage() {
@@ -15,8 +15,8 @@ export default function HomePage() {
       <Problem />
       <Workflow />
       <AgentSystem />
-      <InteractiveDemo />
       <Metrics />
+      <About />
       <Footer />
     </main>
   );

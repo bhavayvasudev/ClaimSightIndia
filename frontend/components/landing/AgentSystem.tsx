@@ -1,21 +1,23 @@
 import { Reveal } from "../ui/Reveal";
 import { SectionLabel } from "../ui/SectionLabel";
+import { SectionDivider } from "../ui/SectionDivider";
 import { agents } from "@/lib/content";
 
 export function AgentSystem() {
   return (
-    <section id="agents" className="border-t border-fog bg-linen">
-      <div className="mx-auto flex min-h-screen max-w-content flex-col items-center justify-center px-6 py-24 md:px-8">
+    <section id="agents" className="relative bg-linen">
+      <SectionDivider />
+      <div className="mx-auto flex min-h-screen max-w-content flex-col items-center justify-center px-6 py-28 md:px-8">
         <Reveal className="text-center">
           <SectionLabel>Multi-agent architecture</SectionLabel>
         </Reveal>
         <Reveal delay={0.1} className="text-center">
-          <h2 className="mx-auto mt-6 max-w-[680px] text-[34px] font-semibold leading-[1.15] tracking-display text-carbon sm:text-[44px] md:text-[52px]">
+          <h2 className="mx-auto mt-6 max-w-[680px] text-balance text-[34px] font-semibold leading-[1.12] tracking-display text-carbon sm:text-[44px] md:text-[54px]">
             Six specialists. One report.
           </h2>
         </Reveal>
         <Reveal delay={0.2} className="text-center">
-          <p className="mx-auto mt-6 max-w-copy text-[16px] leading-relaxed tracking-body text-ash">
+          <p className="mx-auto mt-6 max-w-copy text-[16px] leading-relaxed tracking-body text-graphite">
             Each agent owns one dimension of the claim. An orchestrator sequences them, resolves
             conflicts between their findings, and composes the final triage report.
           </p>
@@ -24,8 +26,8 @@ export function AgentSystem() {
         <div className="mt-16 grid w-full grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 md:mt-20 lg:grid-cols-3">
           {agents.map((agent, i) => (
             <Reveal key={agent.name} delay={0.1 + i * 0.08}>
-              <div className="flex flex-col items-center px-4 text-center">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lavender text-white">
+              <div className="group flex flex-col items-center px-4 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-b from-[#a29ef8] to-lavender text-white transition-[transform,box-shadow] duration-500 ease-out group-hover:scale-110 group-hover:shadow-[0_8px_20px_rgba(145,141,246,0.4)]">
                   <AgentGlyph name={agent.glyph} />
                 </span>
                 <h3 className="mt-5 text-[17px] font-medium tracking-heading text-carbon">

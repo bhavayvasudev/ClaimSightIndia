@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 
@@ -18,7 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={sans.variable}>
       <body>
-        <SmoothScroll>{children}</SmoothScroll>
+        <SessionProvider>
+          <SmoothScroll>{children}</SmoothScroll>
+        </SessionProvider>
+        <div className="grain" aria-hidden />
       </body>
     </html>
   );

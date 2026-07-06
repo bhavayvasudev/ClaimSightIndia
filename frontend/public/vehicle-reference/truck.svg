@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" role="img" aria-label="Reference illustration of a truck">
+  <ellipse cx="320" cy="300" rx="260" ry="10" fill="#e8e8e8" />
+  <path d="M62 150 C62 130 78 116 98 116 L216 116 C238 116 256 132 264 154 L272 178 L272 246 L62 246 C50 246 40 236 40 224 L40 176 C40 162 50 152 62 150 Z" fill="#ffffff" stroke="#181925" stroke-width="1.5" stroke-linejoin="round" />
+  <path d="M110 130 L206 130 C220 130 232 140 238 154 L246 176 L108 176 Z" fill="#f5f5f5" stroke="#181925" stroke-width="1.5" stroke-linejoin="round" />
+  <path d="M280 106 C280 100 285 96 291 96 L560 96 C572 96 582 106 582 118 L582 224 C582 236 572 246 560 246 L280 246 Z" fill="#ffffff" stroke="#181925" stroke-width="1.5" stroke-linejoin="round" />
+  <line x1="280" y1="150" x2="582" y2="150" stroke="#181925" stroke-width="1.5" opacity="0.35" />
+  <rect x="556" y="132" width="18" height="14" rx="4" fill="#918df6" />
+  <rect x="40" y="192" width="12" height="10" rx="4" fill="#181925" opacity="0.5" />
+  <circle cx="122" cy="246" r="34" fill="#181925" />
+  <circle cx="122" cy="246" r="12" fill="#fafafa" />
+  <circle cx="336" cy="246" r="34" fill="#181925" />
+  <circle cx="336" cy="246" r="12" fill="#fafafa" />
+  <circle cx="500" cy="246" r="34" fill="#181925" />
+  <circle cx="500" cy="246" r="12" fill="#fafafa" />
+</svg>

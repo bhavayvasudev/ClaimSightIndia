@@ -9,6 +9,7 @@ import {
   type MotionValue,
 } from "framer-motion";
 import { PillButton } from "../ui/PillButton";
+import { AssessmentCTAButton } from "../ui/AssessmentCTAButton";
 import { SectionLabel } from "../ui/SectionLabel";
 import { VehicleIllustration } from "./VehicleIllustration";
 
@@ -43,9 +44,26 @@ export function Hero() {
   // Everything on the stage dims once the report takes over
   const stageDim = useTransform(p, [0.78, 0.88], [1, 0.25]);
 
+  // Gentle parallax: the floating cards keep drifting after they land
+  const fraudDrift = useTransform(p, [0.5, 0.95], [10, -16]);
+  const policyDrift = useTransform(p, [0.62, 0.95], [8, -12]);
+  const glowShift = useTransform(p, [0, 0.5], [0, -80]);
+
   return (
     <section ref={trackRef} className="relative h-[600vh]">
       <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden pt-16">
+        {/* ————— Ambient glow field ————— */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/2 top-[8%] -translate-x-1/2">
+            <motion.div
+              style={{ y: glowShift }}
+              className="h-[480px] w-[720px] rounded-full bg-lavender/[0.13] blur-[130px]"
+            />
+          </div>
+          <div className="absolute -right-[6%] bottom-[6%] h-[340px] w-[420px] rounded-full bg-sky/[0.07] blur-[120px]" />
+          <div className="absolute -left-[8%] top-[30%] h-[300px] w-[360px] rounded-full bg-mint/[0.05] blur-[110px]" />
+        </div>
+
         {/* ————— Opening headline ————— */}
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 pt-16">
           <motion.div
@@ -63,15 +81,18 @@ export function Hero() {
               initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-              className="mt-6 max-w-[820px] text-[44px] font-semibold leading-[1.1] tracking-display text-carbon sm:text-[56px] md:text-[64px]"
+              className="mt-6 max-w-[860px] text-balance text-[44px] font-semibold leading-[1.06] tracking-display text-carbon sm:text-[58px] md:text-[70px]"
             >
-              Every claim, <span className="text-lavender">seen clearly.</span>
+              Every claim,{" "}
+              <span className="bg-gradient-to-r from-lavender to-[#b3a6ff] bg-clip-text text-transparent">
+                seen clearly.
+              </span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.22 }}
-              className="mt-6 max-w-copy text-[16px] leading-relaxed tracking-body text-ash"
+              className="mt-7 max-w-copy text-[17px] leading-relaxed tracking-body text-graphite"
             >
               ClaimSight reads damage photos, policy PDFs, registration numbers and accident
               narratives together — and returns one structured, audit-ready triage report.
@@ -82,11 +103,9 @@ export function Hero() {
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.34 }}
               className="mt-9 flex items-center gap-3"
             >
-              <PillButton href="#demo" size="lg">
-                Request a demo
-              </PillButton>
-              <PillButton href="#problem" variant="ghost" size="lg">
-                See how it works
+              <AssessmentCTAButton size="lg">Try ClaimSight</AssessmentCTAButton>
+              <PillButton href="#agents" variant="ghost" size="lg">
+                View Architecture
               </PillButton>
             </motion.div>
             <motion.p
@@ -204,7 +223,7 @@ export function Hero() {
               from={{ x: 36 }}
               className="absolute -right-3 top-[16%] w-[186px] md:-right-20 md:w-[230px]"
             >
-              <motion.div style={{ opacity: stageDim }} className="rounded-card border border-fog bg-white p-4 shadow-panel md:p-5">
+              <motion.div style={{ opacity: stageDim, y: fraudDrift }} className="rounded-card border border-fog bg-white p-4 shadow-panel md:p-5">
                 <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ash">Fraud risk</p>
                 <p className="mt-1 text-[26px] font-semibold leading-none tracking-heading text-carbon">
                   12<span className="text-[14px] font-medium text-ash"> / 100</span>
@@ -230,7 +249,7 @@ export function Hero() {
               from={{ x: -36 }}
               className="absolute -left-3 top-[38%] w-[186px] md:-left-20 md:w-[230px]"
             >
-              <motion.div style={{ opacity: stageDim }} className="rounded-card border border-fog bg-white p-4 shadow-panel md:p-5">
+              <motion.div style={{ opacity: stageDim, y: policyDrift }} className="rounded-card border border-fog bg-white p-4 shadow-panel md:p-5">
                 <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ash">Policy analysis</p>
                 <p className="mt-1 text-[14px] font-semibold tracking-body text-carbon">
                   Comprehensive · IDV ₹8.4L

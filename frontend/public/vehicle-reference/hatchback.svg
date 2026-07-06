@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" role="img" aria-label="Reference illustration of a hatchback">
+  <ellipse cx="320" cy="298" rx="220" ry="10" fill="#e8e8e8" />
+  <path d="M96 210 C96 186 116 176 144 174 L188 172 C204 130 238 96 278 92 L372 92 C398 98 414 122 424 152 C432 176 444 196 460 208 L460 226 C460 236 452 244 442 244 L410 244 C410 222 392 204 370 204 C348 204 330 222 330 244 L230 244 C230 222 212 204 190 204 C168 204 150 222 150 244 L120 244 C108 244 96 236 96 224 Z" fill="#ffffff" stroke="#181925" stroke-width="1.5" stroke-linejoin="round" />
+  <path d="M200 172 C216 132 246 100 280 96 L368 96 C392 102 406 124 416 152 Z" fill="none" stroke="#181925" stroke-width="1.5" />
+  <path d="M214 168 C228 138 250 112 278 108 L326 108 L326 168 Z" fill="#f5f5f5" stroke="#181925" stroke-width="1.5" stroke-linejoin="round" />
+  <path d="M334 108 L364 108 C384 112 398 130 408 152 L334 152 Z" fill="#f5f5f5" stroke="#181925" stroke-width="1.5" stroke-linejoin="round" />
+  <line x1="330" y1="106" x2="330" y2="168" stroke="#181925" stroke-width="1.5" />
+  <line x1="330" y1="176" x2="330" y2="244" stroke="#181925" stroke-width="1.5" opacity="0.4" />
+  <rect x="290" y="192" width="18" height="4" rx="2" fill="#181925" />
+  <rect x="360" y="192" width="18" height="4" rx="2" fill="#181925" />
+  <rect x="440" y="192" width="14" height="10" rx="4" fill="#918df6" />
+  <rect x="96" y="192" width="12" height="10" rx="4" fill="#181925" opacity="0.5" />
+  <circle cx="190" cy="244" r="34" fill="#181925" />
+  <circle cx="190" cy="244" r="12" fill="#fafafa" />
+  <circle cx="410" cy="244" r="34" fill="#181925" />
+  <circle cx="410" cy="244" r="12" fill="#fafafa" />
+</svg>
