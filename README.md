@@ -144,11 +144,3 @@ cd frontend && npm run lint
 cd frontend && npm run build
 python scripts/check_frontend_secrets.py   # no secrets in frontend source
 ```
-
-## Notes
-
-- Secrets live in `backend/.env` / `frontend/.env.local` only. The single
-  `NEXT_PUBLIC_*` variable is the backend base URL, which is public by
-  design. The ai-service URL is backend-only.
-- No accuracy guarantees, regulatory approvals, or insurer partnerships
-  are claimed. ClaimSight assists triage; it does not adjudicate claims.
