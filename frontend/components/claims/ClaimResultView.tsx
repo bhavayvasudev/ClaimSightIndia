@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/ui/Reveal";
 import { PillButton } from "@/components/ui/PillButton";
 import { SignInAgainButton } from "@/components/ui/SignInAgainButton";
@@ -34,8 +35,16 @@ import { RiskSignalsPanel } from "./RiskSignalsPanel";
 
 type LoadState = "loading" | "ready" | "error";
 
+// Readiness polling while the claim is still `analyzing` (e.g. the user
+// landed here from a dashboard link, or from the intake form's
+// "still processing" state). Bounded so a claim stuck server-side doesn't
+// poll forever — after the budget the page simply stops auto-refreshing.
+const READINESS_POLL_INTERVAL_MS = 4_000;
+const READINESS_POLL_LIMIT = 60; // × 4s = 4 minutes
+
 export function ClaimResultView({ claimId }: { claimId: string }) {
   const { data: session, status: sessionStatus } = useSession();
+  const reducedMotion = useReducedMotion() ?? false;
   const [state, setState] = useState<LoadState>("loading");
   const [claim, setClaim] = useState<ClaimResponse | null>(null);
   const [report, setReport] = useState<UnifiedClaimReport | null>(null);
@@ -50,24 +59,32 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
   const [policyUploadError, setPolicyUploadError] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  const load = useCallback(async () => {
-    setState("loading");
-    try {
-      const [claimResult, timelineResult, reportResult] = await Promise.all([
-        getClaim(claimId, session?.backendAccessToken),
-        getClaimTimeline(claimId, session?.backendAccessToken),
-        getClaimReport(claimId, session?.backendAccessToken),
-      ]);
-      setClaim(claimResult);
-      setTimeline(timelineResult.stages);
-      setReport(reportResult);
-      setState("ready");
-    } catch (err) {
-      setErrorMessage(userFacingMessage(err));
-      setErrorStatus(err instanceof ApiError ? err.status : null);
-      setState("error");
-    }
-  }, [claimId, session?.backendAccessToken]);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      // A silent refresh (readiness polling) must never flash the page
+      // back to the loading skeleton, and a transient failure during it
+      // must never replace an already-rendered claim with an error — the
+      // next poll simply tries again.
+      if (!options?.silent) setState("loading");
+      try {
+        const [claimResult, timelineResult, reportResult] = await Promise.all([
+          getClaim(claimId, session?.backendAccessToken),
+          getClaimTimeline(claimId, session?.backendAccessToken),
+          getClaimReport(claimId, session?.backendAccessToken),
+        ]);
+        setClaim(claimResult);
+        setTimeline(timelineResult.stages);
+        setReport(reportResult);
+        setState("ready");
+      } catch (err) {
+        if (options?.silent) return;
+        setErrorMessage(userFacingMessage(err));
+        setErrorStatus(err instanceof ApiError ? err.status : null);
+        setState("error");
+      }
+    },
+    [claimId, session?.backendAccessToken]
+  );
 
   useEffect(() => {
     // Wait for the session to resolve before the first fetch — otherwise
@@ -80,6 +97,25 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
     if (sessionStatus === "authenticated" && session?.backendAuthPending) return;
     load();
   }, [load, sessionStatus, session?.backendAuthPending]);
+
+  // While the claim is still analyzing server-side, keep checking
+  // readiness quietly instead of presenting a half-empty report as final.
+  // An interval (not a re-armed timeout) because a poll that finds the
+  // status unchanged doesn't alter this effect's dependencies; the
+  // cleanup runs — and polling stops — the moment the status moves on.
+  const readinessPolls = useRef(0);
+  useEffect(() => {
+    if (state !== "ready" || claim?.status !== "analyzing") return;
+    const interval = window.setInterval(() => {
+      readinessPolls.current += 1;
+      if (readinessPolls.current > READINESS_POLL_LIMIT) {
+        window.clearInterval(interval);
+        return;
+      }
+      load({ silent: true });
+    }, READINESS_POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [state, claim?.status, load]);
 
   async function handlePolicyUpload(file: File) {
     setUploadingPolicy(true);
@@ -116,8 +152,17 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
 
   if (state === "loading") {
     return (
-      <div className="mx-auto flex min-h-screen max-w-content items-center justify-center px-6">
-        <p className="text-[15px] tracking-body text-graphite">Loading claim…</p>
+      <div className="mx-auto flex min-h-screen max-w-content flex-col items-center justify-center gap-4 px-6">
+        <span
+          className={`h-5 w-5 rounded-full border-2 border-fog border-t-lavender ${
+            reducedMotion ? "" : "animate-spin"
+          }`}
+          aria-hidden
+        />
+        <div className="text-center">
+          <p className="text-[15px] font-medium tracking-body text-carbon">Loading claim</p>
+          <p className="mt-1 text-[13px] tracking-body text-ash">{claimId}</p>
+        </div>
       </div>
     );
   }
@@ -201,6 +246,28 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
           {CLAIM_STATUS_DESCRIPTION[claim.status]}
         </p>
       </Reveal>
+
+      {claim.status === "analyzing" && (
+        <Reveal className="mt-8">
+          <div className="flex items-start gap-3.5 rounded-card border border-fog bg-white p-6 shadow-panel">
+            <span
+              className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-fog border-t-lavender ${
+                reducedMotion ? "" : "animate-spin"
+              }`}
+              aria-hidden
+            />
+            <div>
+              <p className="text-[14px] font-medium tracking-body text-carbon">
+                Preparing your assessment report
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed tracking-body text-graphite">
+                The analysis is still running. This page checks automatically and will show the
+                full report as soon as it&apos;s ready.
+              </p>
+            </div>
+          </div>
+        </Reveal>
+      )}
 
       <Reveal delay={0.05} className="mt-10">
         <div className="rounded-card border border-fog bg-white p-6 shadow-panel md:p-8">

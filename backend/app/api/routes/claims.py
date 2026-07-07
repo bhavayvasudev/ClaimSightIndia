@@ -181,7 +181,7 @@ async def analyze_claim(
     repo = ClaimRepository(db)
 
     try:
-        record = await claim_service.analyze_claim(
+        record, reused_existing_result = await claim_service.analyze_claim(
             repo,
             ai_client,
             claim_id=claim_id,
@@ -208,6 +208,13 @@ async def analyze_claim(
         raise HTTPException(
             status_code=502, detail="AI service returned an invalid response."
         )
+
+    # A retry that matched an already-completed assessment (byte-identical
+    # images) changed nothing, so the workflow below already ran for it —
+    # running it again would only re-do coverage/risk/report work and emit
+    # duplicate "analysis completed" notifications for the same claim.
+    if reused_existing_result:
+        return ClaimResponse.from_record(record)
 
     # Continue the workflow (policy retrieval/coverage/risk/report — Task 5)
     # now that damage assessment + pricing are persisted. Deliberately

@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { PillButton } from "@/components/ui/PillButton";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { Reveal } from "@/components/ui/Reveal";
 import { UploadField } from "@/components/ui/UploadField";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { SignInAgainButton } from "@/components/ui/SignInAgainButton";
+import { AnalysisProgress, type AnalysisProgressMode } from "@/components/claims/AnalysisProgress";
 import { EASE } from "@/lib/motion";
 import {
   ApiError,
   createClaim,
   analyzeClaim,
+  getClaim,
   isSupportedImageFile,
   listVehicleManufacturers,
   listVehicleModels,
@@ -23,6 +26,17 @@ import {
   type VehicleCatalogModel,
   type VehicleManufacturer,
 } from "@/lib/api";
+import {
+  ANALYZE_REQUEST_TIMEOUT_MS,
+  runClaimAnalysis,
+  type AnalysisFailureKind,
+} from "@/lib/claims/analysisRunner";
+import {
+  INITIAL_STAGE_PROGRESS,
+  advanceStage,
+  completeStages,
+  stageHoldMs,
+} from "@/lib/claims/analysisStages";
 
 // Mirrors the backend's real accepted formats
 // (`ALLOWED_CONTENT_TYPES` in `backend/app/services/policy/service.py`) —
@@ -34,23 +48,6 @@ function isSupportedPolicyFile(file: File): boolean {
 
 type Phase = "form" | "creating" | "analyzing" | "error";
 
-// Truthful, sequential stage messages mirroring what the backend +
-// ai-service genuinely do during one /analyze request (upload →
-// vehicle-presence validation → YOLO damage analysis → part matching →
-// category-aware pricing → persistence). Not tied to a live progress
-// signal (the current API has no progress endpoint), so these advance on
-// a timer and hold at the last stage — never a fabricated percentage.
-const ANALYSIS_STAGES = [
-  "Uploading images",
-  "Validating vehicle photos",
-  "Analyzing visible damage",
-  "Matching damaged vehicle parts",
-  "Preparing repair estimate",
-  "Finalizing assessment",
-];
-
-const STAGE_INTERVAL_MS = 2200;
-
 // Mirrors the backend contract (`ClaimCreateRequest` in
 // `backend/app/schemas/claim_api.py`) — never stricter than it.
 const MIN_VEHICLE_YEAR = 1980;
@@ -58,6 +55,7 @@ const MAX_VEHICLE_YEAR = new Date().getFullYear() + 1;
 
 export function ClaimIntakeForm() {
   const router = useRouter();
+  const reducedMotion = useReducedMotion() ?? false;
   const { data: session, status: sessionStatus } = useSession();
 
   // Backend-auth state machine (see lib/auth/callbacks.ts):
@@ -142,18 +140,24 @@ export function ClaimIntakeForm() {
   // reuses this id instead of calling createClaim again.
   const [claimId, setClaimId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // HTTP status of the last failure — a 401 renders a sign-in action,
-  // since resubmitting the same unauthenticated request can never succeed.
-  const [errorStatus, setErrorStatus] = useState<number | null>(null);
-  const [stageIndex, setStageIndex] = useState(0);
+  // How the last run failed (see lib/claims/analysisRunner.ts) — drives
+  // which recovery panel renders. "still_processing" in particular is a
+  // wait state with a claim-status link, never styled as a failure.
+  const [errorKind, setErrorKind] = useState<AnalysisFailureKind | null>(null);
+  const [stageProgress, setStageProgress] = useState(INITIAL_STAGE_PROGRESS);
+  const [progressMode, setProgressMode] = useState<AnalysisProgressMode>("processing");
 
-  const stageTimer = useRef<number | null>(null);
-
+  // Time-based stage advancement: one timeout per active stage (each has
+  // its own hold duration), re-armed via the stageProgress dependency.
+  // The final stage's hold is null — it stays active until the runner
+  // confirms real completion, so completion is never claimed on a timer.
   useEffect(() => {
-    return () => {
-      if (stageTimer.current) window.clearInterval(stageTimer.current);
-    };
-  }, []);
+    if (phase !== "analyzing" || stageProgress.completed) return;
+    const hold = stageHoldMs(stageProgress);
+    if (hold === null) return;
+    const timer = window.setTimeout(() => setStageProgress(advanceStage), hold);
+    return () => window.clearTimeout(timer);
+  }, [phase, stageProgress]);
 
   function handleImages(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -189,35 +193,37 @@ export function ClaimIntakeForm() {
     setPolicyFileRejected(false);
   }
 
-  function startStageCycle() {
-    setStageIndex(0);
-    stageTimer.current = window.setInterval(() => {
-      setStageIndex((i) => Math.min(i + 1, ANALYSIS_STAGES.length - 1));
-    }, STAGE_INTERVAL_MS);
-  }
-
-  function stopStageCycle() {
-    if (stageTimer.current) {
-      window.clearInterval(stageTimer.current);
-      stageTimer.current = null;
-    }
-  }
-
   async function runAnalysis(idToAnalyze: string) {
     setPhase("analyzing");
     setErrorMessage(null);
-    setErrorStatus(null);
-    startStageCycle();
-    try {
-      const result = await analyzeClaim(idToAnalyze, images, session?.backendAccessToken);
-      stopStageCycle();
-      router.push(`/claims/${result.id}`);
-    } catch (err) {
-      stopStageCycle();
-      setErrorMessage(userFacingMessage(err));
-      setErrorStatus(err instanceof ApiError ? err.status : null);
-      setPhase("error");
+    setErrorKind(null);
+    setStageProgress(INITIAL_STAGE_PROGRESS);
+    setProgressMode("processing");
+
+    const token = session?.backendAccessToken;
+    const outcome = await runClaimAnalysis({
+      analyze: () =>
+        analyzeClaim(idToAnalyze, images, token, { timeoutMs: ANALYZE_REQUEST_TIMEOUT_MS }),
+      fetchClaim: () => getClaim(idToAnalyze, token),
+      onPhase: (runPhase) =>
+        setProgressMode(runPhase === "reconciling" ? "reconciling" : "processing"),
+    });
+
+    if (outcome.ok) {
+      // Settle the stages, confirm success, and hold a brief "preparing
+      // your report" bridge while the destination route warms — a short
+      // transition window for visual continuity, not an artificial wait.
+      setStageProgress(completeStages());
+      setProgressMode("preparing");
+      router.prefetch(`/claims/${outcome.claim.id}`);
+      await new Promise((resolve) => setTimeout(resolve, reducedMotion ? 350 : 1900));
+      router.push(`/claims/${outcome.claim.id}`);
+      return;
     }
+
+    setErrorKind(outcome.failure.kind);
+    setErrorMessage(outcome.failure.message);
+    setPhase("error");
   }
 
   const parsedYear = Number(vehicleYear);
@@ -245,6 +251,7 @@ export function ClaimIntakeForm() {
           ? "Select at least one damage photo to continue."
           : "Select a manufacturer, model, and a valid manufacture year to continue."
       );
+      setErrorKind(null);
       setPhase("error");
       return;
     }
@@ -257,7 +264,7 @@ export function ClaimIntakeForm() {
     }
 
     setErrorMessage(null);
-    setErrorStatus(null);
+    setErrorKind(null);
     setPhase("creating");
     try {
       const claim = await createClaim(
@@ -283,7 +290,7 @@ export function ClaimIntakeForm() {
       await runAnalysis(claim.id);
     } catch (err) {
       setErrorMessage(userFacingMessage(err));
-      setErrorStatus(err instanceof ApiError ? err.status : null);
+      setErrorKind(err instanceof ApiError && err.status === 401 ? "auth" : null);
       setPhase("error");
     }
   }
@@ -515,39 +522,7 @@ export function ClaimIntakeForm() {
                   transition={{ duration: 0.6, ease: EASE }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-10 border-t border-fog pt-8">
-                    <ul className="mx-auto flex w-fit flex-col gap-2.5">
-                      {ANALYSIS_STAGES.map((stage, index) => (
-                        <li key={stage} className="flex items-center gap-2.5">
-                          {index < stageIndex ? (
-                            <span className="flex h-4 w-4 items-center justify-center text-[11px] text-mint">✓</span>
-                          ) : index === stageIndex ? (
-                            <span className="flex h-4 w-4 items-center justify-center">
-                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lavender" />
-                            </span>
-                          ) : (
-                            <span className="flex h-4 w-4 items-center justify-center">
-                              <span className="h-1 w-1 rounded-full bg-fog" />
-                            </span>
-                          )}
-                          <span
-                            className={`text-[13px] tracking-body ${
-                              index === stageIndex
-                                ? "font-medium text-carbon"
-                                : index < stageIndex
-                                  ? "text-graphite"
-                                  : "text-ash"
-                            }`}
-                          >
-                            {stage}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-5 text-center text-[12px] tracking-body text-ash">
-                      Analysis usually completes within a minute. Keep this page open.
-                    </p>
-                  </div>
+                  <AnalysisProgress claimId={claimId} progress={stageProgress} mode={progressMode} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -561,14 +536,47 @@ export function ClaimIntakeForm() {
                   transition={{ duration: 0.4, ease: EASE }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-8 rounded-input border border-ember/25 bg-ember/[0.06] px-4 py-3 text-center">
-                    <p className="text-[14px] tracking-body text-ember">{errorMessage}</p>
-                    {errorStatus === 401 && (
-                      <div className="mt-3 flex justify-center">
-                        <SignInAgainButton size="sm" />
-                      </div>
-                    )}
-                  </div>
+                  {errorKind === "still_processing" ? (
+                    // Not a failure: the analysis outlived our polling
+                    // budget but the claim is intact and still working.
+                    // Calm wait-state styling, claim preserved, with the
+                    // one genuinely useful action — its status page (which
+                    // keeps checking readiness). Retrying is also safe:
+                    // the backend returns the finished result without
+                    // re-running inference if it completed meanwhile.
+                    <div className="mt-8 rounded-input border border-fog bg-mist/40 px-4 py-4 text-center">
+                      <p className="text-[14px] font-medium tracking-body text-carbon">
+                        Still processing
+                      </p>
+                      <p className="mx-auto mt-1.5 max-w-copy text-[13px] leading-relaxed tracking-body text-graphite">
+                        {errorMessage}
+                      </p>
+                      {claimId && (
+                        <div className="mt-3 flex justify-center">
+                          <Link
+                            href={`/claims/${claimId}`}
+                            className="text-[13px] font-medium text-carbon underline decoration-fog underline-offset-4 hover:decoration-carbon"
+                          >
+                            View claim status
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-8 rounded-input border border-ember/25 bg-ember/[0.06] px-4 py-4 text-center">
+                      <p className="text-[14px] tracking-body text-ember">{errorMessage}</p>
+                      {claimId && errorKind !== "auth" && (
+                        <p className="mt-1.5 text-[12px] tracking-body text-graphite">
+                          Your claim {claimId} is saved — retrying won&apos;t create a duplicate.
+                        </p>
+                      )}
+                      {errorKind === "auth" && (
+                        <div className="mt-3 flex justify-center">
+                          <SignInAgainButton size="sm" />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

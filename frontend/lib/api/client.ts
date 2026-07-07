@@ -88,15 +88,28 @@ export function createClaim(input: CreateClaimInput, token: string | undefined):
 export function analyzeClaim(
   claimId: string,
   images: File[],
-  token: string | undefined
+  token: string | undefined,
+  options?: { timeoutMs?: number }
 ): Promise<ClaimResponse> {
   const formData = new FormData();
   images.forEach((file) => formData.append("images", file));
+
+  // A bounded wait, not a failure boundary: analysis keeps running
+  // server-side after an abort, so callers that pass `timeoutMs` are
+  // expected to reconcile against real claim status afterwards (see
+  // lib/claims/analysisRunner.ts) rather than reporting an error. The
+  // abort surfaces as ApiError status 0, same as any transport failure.
+  const timeoutMs = options?.timeoutMs;
+  const controller = timeoutMs ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
   return request<ClaimResponse>(`/claims/${encodeURIComponent(claimId)}/analyze`, {
     method: "POST",
     headers: authHeaders(token),
     body: formData,
+    ...(controller ? { signal: controller.signal } : {}),
+  }).finally(() => {
+    if (timer) clearTimeout(timer);
   });
 }
 

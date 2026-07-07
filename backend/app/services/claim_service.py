@@ -72,6 +72,13 @@ async def create_claim(
     )
 
 
+#: Statuses that carry a completed, priced assessment — the only states an
+#: idempotent re-analyze may short-circuit to (see `analyze_claim`).
+_COMPLETED_STATUSES = frozenset(
+    {ClaimRecordStatus.ANALYSIS_COMPLETE.value, ClaimRecordStatus.REVIEW_REQUIRED.value}
+)
+
+
 async def analyze_claim(
     repo: ClaimRepository,
     ai_client: AIServiceClient,
@@ -79,12 +86,20 @@ async def analyze_claim(
     claim_id: str,
     images: List[ImagePayload],
     user_id: int,
-) -> ClaimRecord:
+) -> tuple[ClaimRecord, bool]:
     """Runs the full analyze step for an existing claim: sets status to
     `analyzing`, calls the ai-service, prices the merged assessment, and
     stores both the exact AI assessment used for pricing and the pricing
     result. Leaves the claim `failed` (never partially updated) if the
     ai-service call or response validation fails.
+
+    Returns `(record, reused_existing_result)`. Idempotent for retries: a
+    claim that already holds a completed assessment for byte-identical
+    images (matched via the stored sha256 `image_hashes`) is returned
+    as-is with `reused_existing_result=True` — no second inference run, no
+    re-priced or re-written rows. This is what makes the frontend's
+    retry-after-timeout safe: the first attempt may have committed
+    server-side even though the browser never saw the response.
 
     Ownership-aware by construction: `get_by_claim_id_for_user` returns
     None both for a nonexistent claim_id and for one owned by a different
@@ -94,6 +109,14 @@ async def analyze_claim(
     record = await repo.get_by_claim_id_for_user(claim_id, user_id)
     if record is None:
         raise ClaimNotFoundError(claim_id)
+
+    submitted_hashes = [hashlib.sha256(content).hexdigest() for _, content, _ in images]
+    if (
+        record.status in _COMPLETED_STATUSES
+        and record.ai_assessment is not None
+        and record.image_hashes == submitted_hashes
+    ):
+        return record, True
 
     record.status = ClaimRecordStatus.ANALYZING.value
     record = await repo.save(record)
@@ -132,7 +155,8 @@ async def analyze_claim(
 
     # sha256 of each submitted image's bytes (never the bytes themselves)
     # — the only input the risk engine's exact-duplicate-image signal
-    # needs (app/services/risk/risk_engine.py).
-    record.image_hashes = [hashlib.sha256(content).hexdigest() for _, content, _ in images]
+    # needs (app/services/risk/risk_engine.py), and the key the
+    # idempotency short-circuit above matches retries against.
+    record.image_hashes = submitted_hashes
 
-    return await repo.save(record)
+    return await repo.save(record), False

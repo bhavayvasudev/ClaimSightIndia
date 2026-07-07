@@ -60,7 +60,14 @@ class Settings(BaseSettings):
     # ai-service (YOLO car-parts + damage-segmentation pipeline). Never
     # hardcode this elsewhere — services/ai_client.py is the only caller.
     ai_service_url: str = Field(default="http://localhost:8500")
-    ai_service_timeout_seconds: float = Field(default=30.0)
+    # Warm inference is sub-second, but a scale-to-zero host (e.g. a
+    # slept Hugging Face Space) reboots the container and reloads both
+    # YOLO models on the first request — routinely 30–120s. The budget
+    # must cover that cold start, or every first claim of the day gets a
+    # false 504 while the Space is still waking. The frontend no longer
+    # waits on this HTTP response alone (it reconciles via claim-status
+    # polling), so a long budget here doesn't hold the UI hostage.
+    ai_service_timeout_seconds: float = Field(default=120.0)
 
     # Browser origins allowed to call this API directly (comma-separated).
     # Default covers the Next.js dev server only — widen via env var for
