@@ -28,6 +28,18 @@ in-process schedule and upgraded in place when a real image resolves —
 so one offline moment never permanently pins a vehicle to the generic
 illustration.
 
+A cached *real* (non-fallback) row is not unconditionally final either:
+its `image_url` only stays trustworthy as long as the file it points to
+is still sitting under `settings.vehicle_image_dir`. On a host whose
+filesystem doesn't survive a restart/redeploy (e.g. Render's default
+ephemeral disk), that file can vanish while the DB row survives, and the
+row would otherwise keep pointing every future request at a permanent
+404. So a cache hit whose backing file is missing on *this* process's
+disk is treated exactly like a cached fallback: retried on the same
+bounded schedule and repaired (or, if the retry itself can't resolve a
+real image, downgraded to the neutral illustration) rather than served
+as a known-dead URL forever. See `_local_file_missing`.
+
 `match_confidence` always reflects which tier actually matched — a
 weak/no match is never presented as a confident one.
 """
@@ -176,6 +188,19 @@ def _defer_remote_retry(query: str) -> None:
     _remote_retry_not_before[query] = time.monotonic() + REMOTE_RETRY_INTERVAL_SECONDS
 
 
+def _local_file_missing(image_url: str) -> bool:
+    """True when `image_url` is one this application serves from its own
+    disk (`app/api/routes/vehicle_images.py`, rooted at
+    `settings.vehicle_image_dir`) and the backing file is not there right
+    now. Frontend-served category SVGs and any future non-local curated
+    asset never depend on this process's disk and are trusted as-is."""
+    prefix = f"{VEHICLE_IMAGE_URL_PREFIX}/"
+    if not image_url.startswith(prefix):
+        return False
+    filename = image_url[len(prefix) :]
+    return not (Path(get_settings().vehicle_image_dir) / filename).is_file()
+
+
 async def resolve_vehicle_reference_image(
     repo: VehicleReferenceImageRepository,
     *,
@@ -196,16 +221,28 @@ async def resolve_vehicle_reference_image(
 
     cached = await repo.get_by_normalized_query(query)
     if cached is not None:
-        if cached.source != FALLBACK_SOURCE or not _remote_retry_allowed(query):
+        # A "real" cache hit is only trustworthy while its file is still
+        # on this process's disk — see the module docstring and
+        # _local_file_missing.
+        stale = cached.source != FALLBACK_SOURCE and _local_file_missing(cached.image_url)
+        if not stale and (cached.source != FALLBACK_SOURCE or not _remote_retry_allowed(query)):
             return cached
-        # Cached fallback + retry window open: one more attempt to
-        # resolve a real image, upgrading the row on success.
+        if stale and not _remote_retry_allowed(query):
+            return cached
+        # Either a cached fallback with the retry window open, or a
+        # previously-real resolution whose backing file is gone (e.g. an
+        # ephemeral filesystem wiped by a platform restart) — one more
+        # attempt to resolve a real image, repairing the row on success.
         result = await active_provider.resolve(
             make=make, model=model, year=year, vehicle_type=vehicle_type, variant=variant
         )
         if result.source == FALLBACK_SOURCE:
             _defer_remote_retry(query)
-            return cached
+            if not stale:
+                return cached
+            # The row was pointing at a file we know is gone — never
+            # keep serving that dead URL; downgrade it to the same
+            # neutral illustration a first-time miss would get.
         return await repo.update_resolution(
             cached, image_url=result.image_url, source=result.source, match_confidence=result.match_confidence
         )
