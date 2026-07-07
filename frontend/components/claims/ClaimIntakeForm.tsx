@@ -31,6 +31,7 @@ import {
   runClaimAnalysis,
   type AnalysisFailureKind,
 } from "@/lib/claims/analysisRunner";
+import { runSuccessTransition } from "@/lib/claims/successTransition";
 import {
   INITIAL_STAGE_PROGRESS,
   advanceStage,
@@ -205,19 +206,31 @@ export function ClaimIntakeForm() {
       analyze: () =>
         analyzeClaim(idToAnalyze, images, token, { timeoutMs: ANALYZE_REQUEST_TIMEOUT_MS }),
       fetchClaim: () => getClaim(idToAnalyze, token),
+      claimId: idToAnalyze,
       onPhase: (runPhase) =>
         setProgressMode(runPhase === "reconciling" ? "reconciling" : "processing"),
     });
 
     if (outcome.ok) {
-      // Settle the stages, confirm success, and hold a brief "preparing
-      // your report" bridge while the destination route warms — a short
-      // transition window for visual continuity, not an artificial wait.
-      setStageProgress(completeStages());
-      setProgressMode("preparing");
-      router.prefetch(`/claims/${outcome.claim.id}`);
-      await new Promise((resolve) => setTimeout(resolve, reducedMotion ? 350 : 1900));
-      router.push(`/claims/${outcome.claim.id}`);
+      // Confirmed success is terminal: everything from here — settling
+      // the stages, painting the "preparing your report" state, warming
+      // the route, navigating — happens inside runSuccessTransition,
+      // which never throws. No failure past this point (prefetch, push)
+      // can fall into an analysis catch block and repaint success as an
+      // error. The bridge is a short bounded transition window; the
+      // destination route's loading state continues the same visual.
+      const target = `/claims/${outcome.claim.id}`;
+      await runSuccessTransition({
+        claimId: outcome.claim.id,
+        markPrepared: () => {
+          setStageProgress(completeStages());
+          setProgressMode("preparing");
+        },
+        prefetch: () => router.prefetch(target),
+        navigate: () => router.push(target),
+        fallbackNavigate: () => window.location.assign(target),
+        bridgeMs: reducedMotion ? 300 : 1600,
+      });
       return;
     }
 

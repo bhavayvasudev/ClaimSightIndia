@@ -207,9 +207,10 @@ runtime overhead.
 **AI-service memory** — loads two YOLO models (car-parts, damage
 segmentation) into memory at process startup, held for the process
 lifetime. Size the container/VM accordingly; a scale-to-zero or
-per-request cold-start deployment would reload both models every time,
-which this project's timeout defaults (`AI_SERVICE_TIMEOUT_SECONDS`) do
-not currently account for.
+per-request cold-start deployment reloads both models every time.
+`AI_SERVICE_TIMEOUT_SECONDS` defaults to 120s to cover that cold start,
+and the frontend reconciles a lost/timed-out analyze response against
+real claim status rather than treating it as a failure.
 
 **Persistent storage for policy documents** — `app/services/policy/storage.py`
 writes to local disk (`UPLOAD_DIR`). Not safe as the only copy in a

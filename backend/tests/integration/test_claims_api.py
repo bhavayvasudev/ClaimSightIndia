@@ -726,6 +726,140 @@ async def test_analyze_claim_schema_invalid_part_returns_502(client, session_fac
 
 
 # ---------------------------------------------------------------------------
+# Analyze idempotency — the production retry-after-lost-response pattern.
+# A cold AI service can push one analyze call past a proxy/browser timeout:
+# the backend still finishes and commits, but the client never sees the
+# response and retries the same claim with the same images. That retry
+# must return the persisted result without a second inference run and
+# without duplicating any per-claim data.
+# ---------------------------------------------------------------------------
+
+
+def _png_bytes(color: str) -> bytes:
+    """A real, decodable PNG whose bytes differ per color — for tests that
+    need a *different* image set (different sha256) on the same claim."""
+    import io as _io
+
+    from PIL import Image as _Image
+
+    buf = _io.BytesIO()
+    _Image.new("RGB", (1, 1), color).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+async def test_reanalyze_identical_images_returns_result_without_second_inference(
+    client, session_factory
+):
+    headers = await _authed_headers(session_factory)
+    claim = await _create_claim(client, headers)
+
+    calls = {"count": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["count"] += 1
+        return httpx.Response(200, json=ANALYZE_CLAIM_ACCEPTED_BODY)
+
+    _use_ai_handler(handler)
+
+    files = [("images", ("front.jpg", VALID_IMAGE_BYTES, "image/png"))]
+    first = await client.post(f"/claims/{claim['id']}/analyze", files=files, headers=headers)
+    assert first.status_code == 200, first.text
+
+    # The retry a user fires after a lost/timed-out response: same claim,
+    # byte-identical images.
+    second = await client.post(f"/claims/{claim['id']}/analyze", files=files, headers=headers)
+    assert second.status_code == 200, second.text
+
+    assert calls["count"] == 1, "identical retry must not re-run inference"
+    assert second.json()["status"] == "analysis_complete"
+    assert second.json()["ai_assessment"] == first.json()["ai_assessment"]
+    assert second.json()["pricing_assessment"] == first.json()["pricing_assessment"]
+
+
+async def test_reanalyze_replay_does_not_duplicate_claim_data_or_notifications(
+    client, session_factory
+):
+    headers = await _authed_headers(session_factory)
+    claim = await _create_claim(client, headers)
+
+    _use_ai_handler(lambda request: httpx.Response(200, json=ANALYZE_CLAIM_ACCEPTED_BODY))
+
+    files = [("images", ("front.jpg", VALID_IMAGE_BYTES, "image/png"))]
+    for _ in range(2):
+        response = await client.post(
+            f"/claims/{claim['id']}/analyze", files=files, headers=headers
+        )
+        assert response.status_code == 200, response.text
+
+    listed = await client.get("/claims", headers=headers)
+    assert len(listed.json()["items"]) == 1, "retry must never create a second claim"
+
+    notifications = await client.get("/notifications", headers=headers)
+    completed = [
+        item
+        for item in notifications.json()["items"]
+        if item["claim_id"] == claim["id"]
+    ]
+    assert len(completed) == 1, "replay must not emit duplicate notifications"
+
+
+async def test_reanalyze_with_different_images_reruns_inference(client, session_factory):
+    headers = await _authed_headers(session_factory)
+    claim = await _create_claim(client, headers)
+
+    calls = {"count": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["count"] += 1
+        return httpx.Response(200, json=ANALYZE_CLAIM_ACCEPTED_BODY)
+
+    _use_ai_handler(handler)
+
+    first = await client.post(
+        f"/claims/{claim['id']}/analyze",
+        files=[("images", ("front.jpg", _png_bytes("red"), "image/png"))],
+        headers=headers,
+    )
+    assert first.status_code == 200, first.text
+
+    # A different image set is a genuinely new submission, never a replay.
+    second = await client.post(
+        f"/claims/{claim['id']}/analyze",
+        files=[("images", ("front-2.jpg", _png_bytes("blue"), "image/png"))],
+        headers=headers,
+    )
+    assert second.status_code == 200, second.text
+    assert calls["count"] == 2
+
+
+async def test_reanalyze_after_failed_attempt_reruns_inference_even_with_same_images(
+    client, session_factory
+):
+    """A `failed` claim holds no reusable result — retrying the exact same
+    images must re-run inference (e.g. the AI service was down and has
+    recovered), never short-circuit to the failed state."""
+    headers = await _authed_headers(session_factory)
+    claim = await _create_claim(client, headers)
+
+    files = [("images", ("front.jpg", VALID_IMAGE_BYTES, "image/png"))]
+
+    def unavailable(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=request)
+
+    _use_ai_handler(unavailable)
+    first = await client.post(f"/claims/{claim['id']}/analyze", files=files, headers=headers)
+    assert first.status_code == 503
+
+    reloaded = await client.get(f"/claims/{claim['id']}", headers=headers)
+    assert reloaded.json()["status"] == "failed"
+
+    _use_ai_handler(lambda request: httpx.Response(200, json=ANALYZE_CLAIM_ACCEPTED_BODY))
+    second = await client.post(f"/claims/{claim['id']}/analyze", files=files, headers=headers)
+    assert second.status_code == 200, second.text
+    assert second.json()["status"] == "analysis_complete"
+
+
+# ---------------------------------------------------------------------------
 # GET /claims/{claim_id}
 # ---------------------------------------------------------------------------
 

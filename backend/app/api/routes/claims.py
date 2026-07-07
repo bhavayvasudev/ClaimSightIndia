@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import logging
+import time
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from PIL import Image, UnidentifiedImageError
@@ -31,6 +32,7 @@ from app.db.review_repository import ReviewItemRepository
 from app.db.session import get_db
 from app.db.vehicle_reference_repository import VehicleReferenceImageRepository
 from app.graph.orchestrator import run_claim_workflow
+from app.observability.context import bind_claim_id
 from app.schemas.claim_api import ClaimCreateRequest, ClaimResponse
 from app.schemas.dashboard_api import ClaimListItem, ClaimListResponse
 from app.services import claim_service
@@ -129,116 +131,146 @@ async def analyze_claim(
     current_user: UserRecord = Depends(get_current_user),
     ai_client: AIServiceClient = Depends(get_ai_service_client),
 ) -> ClaimResponse:
-    if not images:
-        raise _rejected(422, "unsupported_file_type", "At least one image is required.", [])
+    # Whole-route claim binding + timing: every log line emitted while
+    # handling this analyze call (including deep inside claim_service and
+    # the ai_client's timed_operation line) carries claim=<id>, and the
+    # route's own total is logged even though the middleware also times the
+    # request — the two together distinguish "handler was slow" from
+    # "response never left the box".
+    request_start = time.perf_counter()
+    with bind_claim_id(claim_id):
+        logger.info("analyze_request_received images=%d", len(images))
 
-    if len(images) > MAX_IMAGES_PER_ANALYZE:
-        raise _rejected(
-            422,
-            "too_many_files",
-            f"Maximum {MAX_IMAGES_PER_ANALYZE} images allowed per claim.",
-            [],
-        )
+        if not images:
+            raise _rejected(422, "unsupported_file_type", "At least one image is required.", [])
 
-    payload_images: list[tuple[str, bytes, str]] = []
-    corrupted_filenames: list[str] = []
-
-    for image in images:
-        filename = image.filename or "upload.jpg"
-
-        # Never trust the extension or client-supplied content_type alone
-        # for MIME — this at least restricts it to the declared allow-list
-        # before any bytes are read; the Pillow decode below is what
-        # actually proves the bytes are a real image of that kind.
-        if image.content_type not in ALLOWED_CONTENT_TYPES:
-            raise _rejected(422, "unsupported_file_type", f"{filename}: unsupported file type.", [filename])
-
-        content = await image.read()
-        if len(content) > MAX_IMAGE_BYTES:
+        if len(images) > MAX_IMAGES_PER_ANALYZE:
             raise _rejected(
                 422,
-                "file_too_large",
-                f"{filename}: exceeds the {MAX_IMAGE_BYTES // (1024 * 1024)}MB limit.",
-                [filename],
+                "too_many_files",
+                f"Maximum {MAX_IMAGES_PER_ANALYZE} images allowed per claim.",
+                [],
             )
+
+        payload_images: list[tuple[str, bytes, str]] = []
+        corrupted_filenames: list[str] = []
+
+        for image in images:
+            filename = image.filename or "upload.jpg"
+
+            # Never trust the extension or client-supplied content_type alone
+            # for MIME — this at least restricts it to the declared allow-list
+            # before any bytes are read; the Pillow decode below is what
+            # actually proves the bytes are a real image of that kind.
+            if image.content_type not in ALLOWED_CONTENT_TYPES:
+                raise _rejected(422, "unsupported_file_type", f"{filename}: unsupported file type.", [filename])
+
+            content = await image.read()
+            if len(content) > MAX_IMAGE_BYTES:
+                raise _rejected(
+                    422,
+                    "file_too_large",
+                    f"{filename}: exceeds the {MAX_IMAGE_BYTES // (1024 * 1024)}MB limit.",
+                    [filename],
+                )
+
+            try:
+                with Image.open(io.BytesIO(content)) as img:
+                    img.verify()
+            except (UnidentifiedImageError, OSError, ValueError):
+                # Collected across the whole batch, like the ai-service's
+                # vehicle-presence check — the caller learns about every bad
+                # file in one response, never silently dropped or fixed one
+                # at a time across repeated submissions.
+                corrupted_filenames.append(filename)
+                continue
+
+            payload_images.append((filename, content, image.content_type))
+
+        if corrupted_filenames:
+            raise _rejected(422, "corrupted_image", "One or more images could not be read.", corrupted_filenames)
+
+        repo = ClaimRepository(db)
 
         try:
-            with Image.open(io.BytesIO(content)) as img:
-                img.verify()
-        except (UnidentifiedImageError, OSError, ValueError):
-            # Collected across the whole batch, like the ai-service's
-            # vehicle-presence check — the caller learns about every bad
-            # file in one response, never silently dropped or fixed one
-            # at a time across repeated submissions.
-            corrupted_filenames.append(filename)
-            continue
-
-        payload_images.append((filename, content, image.content_type))
-
-    if corrupted_filenames:
-        raise _rejected(422, "corrupted_image", "One or more images could not be read.", corrupted_filenames)
-
-    repo = ClaimRepository(db)
-
-    try:
-        record, reused_existing_result = await claim_service.analyze_claim(
-            repo,
-            ai_client,
-            claim_id=claim_id,
-            images=payload_images,
-            user_id=current_user.id,
-        )
-    except claim_service.ClaimNotFoundError:
-        raise HTTPException(status_code=404, detail="Claim not found.")
-    except AIServiceValidationRejected as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "error_code": exc.error_code,
-                "message": str(exc),
-                "invalid_filenames": exc.invalid_filenames,
-            },
-        )
-    except AIServiceTimeout:
-        raise HTTPException(status_code=504, detail="AI service timed out. Please try again.")
-    except AIServiceUnavailable:
-        raise HTTPException(status_code=503, detail="AI service is currently unavailable.")
-    except AIServiceInvalidResponse:
-        logger.exception("AI service returned a malformed response for claim %s", claim_id)
-        raise HTTPException(
-            status_code=502, detail="AI service returned an invalid response."
-        )
-
-    # A retry that matched an already-completed assessment (byte-identical
-    # images) changed nothing, so the workflow below already ran for it —
-    # running it again would only re-do coverage/risk/report work and emit
-    # duplicate "analysis completed" notifications for the same claim.
-    if reused_existing_result:
-        return ClaimResponse.from_record(record)
-
-    # Continue the workflow (policy retrieval/coverage/risk/report — Task 5)
-    # now that damage assessment + pricing are persisted. Deliberately
-    # isolated in its own try/except: a bug here must never turn an
-    # otherwise-successful analysis into a failed response — the existing,
-    # tested damage assessment + pricing result always wins.
-    try:
-        policy_repo = PolicyDocumentRepository(db)
-        review_repo = ReviewItemRepository(db)
-        record = await run_claim_workflow(repo, policy_repo, review_repo, ai_client, record)
-
-        if current_user.id is not None:
-            notif_repo = NotificationRepository(db)
-            await notification_service.notify_claim_analysis_completed(
-                notif_repo, user_id=current_user.id, claim_id=record.id, claim_public_id=record.claim_id
+            record, reused_existing_result = await claim_service.analyze_claim(
+                repo,
+                ai_client,
+                claim_id=claim_id,
+                images=payload_images,
+                user_id=current_user.id,
             )
-            if record.status == "review_required":
-                await notification_service.notify_claim_review_required(
+        except claim_service.ClaimNotFoundError:
+            raise HTTPException(status_code=404, detail="Claim not found.")
+        except AIServiceValidationRejected as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error_code": exc.error_code,
+                    "message": str(exc),
+                    "invalid_filenames": exc.invalid_filenames,
+                },
+            )
+        except AIServiceTimeout:
+            raise HTTPException(status_code=504, detail="AI service timed out. Please try again.")
+        except AIServiceUnavailable:
+            raise HTTPException(status_code=503, detail="AI service is currently unavailable.")
+        except AIServiceInvalidResponse:
+            logger.exception("AI service returned a malformed response for claim %s", claim_id)
+            raise HTTPException(
+                status_code=502, detail="AI service returned an invalid response."
+            )
+
+        # A retry that matched an already-completed assessment (byte-identical
+        # images) changed nothing, so the workflow below already ran for it —
+        # running it again would only re-do coverage/risk/report work and emit
+        # duplicate "analysis completed" notifications for the same claim.
+        if reused_existing_result:
+            logger.info(
+                "analyze_response_returned reused=1 status=%s total_analyze_duration_ms=%d",
+                record.status,
+                int((time.perf_counter() - request_start) * 1000),
+            )
+            return ClaimResponse.from_record(record)
+
+        # Continue the workflow (policy retrieval/coverage/risk/report — Task 5)
+        # now that damage assessment + pricing are persisted. Deliberately
+        # isolated in its own try/except: a bug here must never turn an
+        # otherwise-successful analysis into a failed response — the existing,
+        # tested damage assessment + pricing result always wins.
+        logger.info("post_analysis_workflow_started")
+        workflow_start = time.perf_counter()
+        try:
+            policy_repo = PolicyDocumentRepository(db)
+            review_repo = ReviewItemRepository(db)
+            record = await run_claim_workflow(repo, policy_repo, review_repo, ai_client, record)
+
+            if current_user.id is not None:
+                notif_repo = NotificationRepository(db)
+                await notification_service.notify_claim_analysis_completed(
                     notif_repo, user_id=current_user.id, claim_id=record.id, claim_public_id=record.claim_id
                 )
-    except Exception:
-        logger.exception("Post-analysis workflow (coverage/risk/report) failed for claim %s", claim_id)
+                if record.status == "review_required":
+                    await notification_service.notify_claim_review_required(
+                        notif_repo, user_id=current_user.id, claim_id=record.id, claim_public_id=record.claim_id
+                    )
+            logger.info(
+                "post_analysis_workflow_completed duration_ms=%d",
+                int((time.perf_counter() - workflow_start) * 1000),
+            )
+        except Exception:
+            logger.exception("Post-analysis workflow (coverage/risk/report) failed for claim %s", claim_id)
+            logger.warning(
+                "post_analysis_workflow_failed duration_ms=%d",
+                int((time.perf_counter() - workflow_start) * 1000),
+            )
 
-    return ClaimResponse.from_record(record)
+        logger.info(
+            "analyze_response_returned reused=0 status=%s total_analyze_duration_ms=%d",
+            record.status,
+            int((time.perf_counter() - request_start) * 1000),
+        )
+        return ClaimResponse.from_record(record)
 
 
 @router.get("/{claim_id}", response_model=ClaimResponse)

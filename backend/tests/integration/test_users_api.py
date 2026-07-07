@@ -24,6 +24,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.routes import users as users_routes
 from app.config import get_settings
 from app.core.google_oidc import GoogleIdentity, InvalidGoogleIdToken
+from app.core.legal import CURRENT_LEGAL_VERSION
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -241,6 +242,92 @@ async def test_refresh_with_expired_token_is_rejected(client):
     )
     response = await client.post("/users/refresh", headers={"Authorization": f"Bearer {expired_token}"})
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Legal consent (/users/consent)
+# ---------------------------------------------------------------------------
+
+
+async def test_consent_requires_authentication(client):
+    response = await client.post(
+        "/users/consent", json={"terms_version": CURRENT_LEGAL_VERSION, "privacy_version": CURRENT_LEGAL_VERSION}
+    )
+    assert response.status_code == 401
+
+
+async def test_new_user_has_no_recorded_consent(client):
+    """Existing users (and anyone who just signed in without ever hitting
+    the consent endpoint) must show no consent recorded at all — the sync
+    route itself never touches these columns."""
+    _, headers = await _signed_in_user(client, "consent-1", "sam@example.com")
+    profile = (await client.get("/users/me", headers=headers)).json()
+    assert profile["terms_accepted_at"] is None
+    assert profile["privacy_accepted_at"] is None
+    assert profile["legal_version_accepted"] is None
+
+
+async def test_accepting_consent_stores_timestamps_and_version(client):
+    _, headers = await _signed_in_user(client, "consent-2", "tara@example.com")
+    response = await client.post(
+        "/users/consent",
+        json={"terms_version": CURRENT_LEGAL_VERSION, "privacy_version": CURRENT_LEGAL_VERSION},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["terms_accepted_at"] is not None
+    assert body["privacy_accepted_at"] is not None
+    assert body["legal_version_accepted"] == CURRENT_LEGAL_VERSION
+
+    reread = (await client.get("/users/me", headers=headers)).json()
+    assert reread["terms_accepted_at"] == body["terms_accepted_at"]
+    assert reread["privacy_accepted_at"] == body["privacy_accepted_at"]
+    assert reread["legal_version_accepted"] == CURRENT_LEGAL_VERSION
+
+
+async def test_accepting_consent_twice_is_idempotent_and_refreshes_timestamp(client):
+    _, headers = await _signed_in_user(client, "consent-3", "uma@example.com")
+    first = await client.post(
+        "/users/consent",
+        json={"terms_version": CURRENT_LEGAL_VERSION, "privacy_version": CURRENT_LEGAL_VERSION},
+        headers=headers,
+    )
+    second = await client.post(
+        "/users/consent",
+        json={"terms_version": CURRENT_LEGAL_VERSION, "privacy_version": CURRENT_LEGAL_VERSION},
+        headers=headers,
+    )
+    assert first.status_code == 200 and second.status_code == 200
+    # Same user record, not a new row — no duplicate/second user id created.
+    assert first.json()["id"] == second.json()["id"]
+    assert second.json()["legal_version_accepted"] == CURRENT_LEGAL_VERSION
+
+
+async def test_consent_with_mismatched_version_still_stores_server_version(client):
+    """A stale frontend build reporting an old version must never make it
+    into the persisted record — the backend's own constant always wins."""
+    _, headers = await _signed_in_user(client, "consent-4", "vik@example.com")
+    response = await client.post(
+        "/users/consent",
+        json={"terms_version": "2020-01-01", "privacy_version": "2020-01-01"},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["legal_version_accepted"] == CURRENT_LEGAL_VERSION
+
+
+async def test_users_can_only_accept_consent_for_their_own_account(client):
+    _, headers_a = await _signed_in_user(client, "consent-5a", "wren@example.com")
+    _, headers_b = await _signed_in_user(client, "consent-5b", "xavi@example.com")
+
+    await client.post(
+        "/users/consent",
+        json={"terms_version": CURRENT_LEGAL_VERSION, "privacy_version": CURRENT_LEGAL_VERSION},
+        headers=headers_a,
+    )
+    b_profile = (await client.get("/users/me", headers=headers_b)).json()
+    assert b_profile["terms_accepted_at"] is None
 
 
 # ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import io
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -29,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core.google_oidc import InvalidGoogleIdToken, verify_google_id_token
+from app.core.legal import CURRENT_LEGAL_VERSION
 from app.core.rate_limit import limiter
 from app.core.security import get_current_user, issue_access_token
 from app.db.models.user import UserRecord
@@ -37,6 +39,7 @@ from app.db.session import get_db
 from app.db.user_repository import UserRepository
 from app.schemas.user_api import (
     ClaimStats,
+    ConsentAcceptRequest,
     UserProfileResponse,
     UserProfileUpdateRequest,
     UserResponse,
@@ -138,6 +141,37 @@ async def refresh_access_token(
         access_token=access_token,
         expires_in=expires_in,
     )
+
+
+@router.post("/consent", response_model=UserProfileResponse)
+@limiter.limit("20/minute")
+async def accept_legal_consent(
+    request: Request,
+    payload: ConsentAcceptRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRecord = Depends(get_current_user),
+) -> UserProfileResponse:
+    """Records that the authenticated user affirmatively accepted the
+    Terms of Service and Privacy Policy. The sign-in page's consent
+    checkbox is the only place this is ever called from — the Google
+    button there is disabled until it's checked. `CURRENT_LEGAL_VERSION`
+    (never the client-reported version) is what actually gets persisted;
+    a mismatch only gets logged, to catch a stale frontend build without
+    blocking the sign-in it's gating."""
+    if payload.terms_version != CURRENT_LEGAL_VERSION or payload.privacy_version != CURRENT_LEGAL_VERSION:
+        logger.warning(
+            "consent accept called with mismatched legal version (client terms=%s privacy=%s, server=%s)",
+            payload.terms_version,
+            payload.privacy_version,
+            CURRENT_LEGAL_VERSION,
+        )
+    now = datetime.now(timezone.utc)
+    current_user.terms_accepted_at = now
+    current_user.privacy_accepted_at = now
+    current_user.legal_version_accepted = CURRENT_LEGAL_VERSION
+    record = await UserRepository(db).save(current_user)
+    status_counts = await ClaimRepository(db).status_counts_for_user(record.id)
+    return UserProfileResponse.from_record_with_stats(record, _claim_stats(status_counts))
 
 
 @router.get("/me", response_model=UserProfileResponse)

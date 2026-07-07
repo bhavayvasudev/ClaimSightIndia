@@ -8,6 +8,8 @@ stay thin request/response mapping over these two functions.
 from __future__ import annotations
 
 import hashlib
+import logging
+import time
 from typing import List
 
 from pydantic import ValidationError
@@ -22,6 +24,9 @@ from app.schemas.claim_state import (
 )
 from app.services.ai_client import AIServiceClient, AIServiceError, AIServiceInvalidResponse, ImagePayload
 from app.services.cost_model import summarize_claim_costs
+
+
+logger = logging.getLogger(__name__)
 
 
 class ClaimNotFoundError(Exception):
@@ -116,18 +121,36 @@ async def analyze_claim(
         and record.ai_assessment is not None
         and record.image_hashes == submitted_hashes
     ):
+        logger.info("analyze_reused_existing_result status=%s", record.status)
         return record, True
 
     record.status = ClaimRecordStatus.ANALYZING.value
+    status_write_start = time.perf_counter()
     record = await repo.save(record)
+    logger.info(
+        "claim_status_analyzing duration_ms=%d",
+        int((time.perf_counter() - status_write_start) * 1000),
+    )
 
+    logger.info("ai_request_started images=%d", len(images))
+    ai_start = time.perf_counter()
     try:
         raw_response = await ai_client.analyze_claim(images)
+        logger.info(
+            "ai_request_completed ai_request_duration_ms=%d",
+            int((time.perf_counter() - ai_start) * 1000),
+        )
         claim_analysis = raw_response["claim_analysis"]
         damaged_parts = _parse_damaged_parts(claim_analysis)
-    except AIServiceError:
+    except AIServiceError as exc:
+        logger.warning(
+            "ai_request_failed_or_timed_out ai_request_duration_ms=%d error=%s",
+            int((time.perf_counter() - ai_start) * 1000),
+            type(exc).__name__,
+        )
         record.status = ClaimRecordStatus.FAILED.value
         await repo.save(record)
+        logger.info("claim_terminal_status_set status=%s", record.status)
         raise
 
     vision = VisionAssessment(damaged_parts=damaged_parts)
@@ -159,4 +182,12 @@ async def analyze_claim(
     # idempotency short-circuit above matches retries against.
     record.image_hashes = submitted_hashes
 
-    return await repo.save(record), False
+    logger.info("analysis_persistence_started")
+    commit_start = time.perf_counter()
+    record = await repo.save(record)
+    logger.info(
+        "analysis_db_commit_completed duration_ms=%d",
+        int((time.perf_counter() - commit_start) * 1000),
+    )
+    logger.info("claim_terminal_status_set status=%s", record.status)
+    return record, False

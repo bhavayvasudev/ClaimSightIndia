@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import { ConsentSync } from "@/components/providers/ConsentSync";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 
 const sans = Inter({
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={sans.variable}>
       <body>
         <SessionProvider>
+          <ConsentSync />
           <SmoothScroll>{children}</SmoothScroll>
         </SessionProvider>
         <div className="grain" aria-hidden />

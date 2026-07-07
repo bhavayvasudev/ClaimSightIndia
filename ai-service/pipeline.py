@@ -2,6 +2,11 @@ from ultralytics import YOLO
 import numpy as np
 import cv2
 
+import logging
+import time
+
+logger = logging.getLogger("ai_service.pipeline")
+
 
 PARTS_CONF = 0.10
 DAMAGE_CONF = 0.08
@@ -23,7 +28,13 @@ VEHICLE_PRESENCE_CLASSES = {"car", "truck", "bus", "motorcycle"}
 VEHICLE_PRESENCE_CONF = 0.35
 
 
-# Load once when service starts
+# Load once when service starts (import time). The timestamps below are
+# the ground truth for "did a request hit a fresh process": a Space
+# restart/rebuild re-runs this block, so models_loaded appears again in
+# the logs and MODELS_LOADED_AT resets.
+logger.info("model_load_started")
+_model_load_start = time.perf_counter()
+
 vehicle_presence_model = YOLO(
     "yolo11n.pt"
 )
@@ -35,6 +46,10 @@ parts_model = YOLO(
 damage_model = YOLO(
     "models/damage_seg_50_best.pt"
 )
+
+MODEL_LOAD_DURATION_MS = int((time.perf_counter() - _model_load_start) * 1000)
+MODELS_LOADED_AT = time.time()
+logger.info("models_loaded duration_ms=%d", MODEL_LOAD_DURATION_MS)
 
 
 def check_vehicle_presence(image_path):

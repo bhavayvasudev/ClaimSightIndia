@@ -44,6 +44,14 @@ class UserRecord(Base):
     # (app/api/routes/avatars.py), never an arbitrary user-supplied URL.
     custom_avatar_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
+    # Legal consent tier, written only by `POST /users/consent` (the
+    # sign-in page's gated checkbox is the only caller). Null means "never
+    # recorded" — true for every user created before this feature shipped,
+    # and for a signed-in user who hasn't been back through /signin since.
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    privacy_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    legal_version_accepted: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -20,6 +20,7 @@
 
 import { ApiError, userFacingMessage } from "@/lib/api";
 import type { ClaimResponse } from "@/lib/api";
+import { logClaimFlow, type ClaimFlowEvent } from "./diagnostics";
 
 /** How long the initial POST may run before the runner stops waiting on
  * it and reconciles via polling instead. Kept under typical edge-proxy
@@ -82,6 +83,9 @@ export interface RunClaimAnalysisOptions {
   pollTimeoutMs?: number;
   /** Injectable for tests; defaults to setTimeout. */
   sleep?: (ms: number) => Promise<void>;
+  /** For diagnostics only — never used for requests. */
+  claimId?: string;
+  log?: (event: ClaimFlowEvent) => void;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -130,21 +134,57 @@ export async function runClaimAnalysis(options: RunClaimAnalysisOptions): Promis
     pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
     pollTimeoutMs = DEFAULT_POLL_TIMEOUT_MS,
     sleep = defaultSleep,
+    claimId,
+    log = logClaimFlow,
   } = options;
 
+  // Wall-clock timing for the diagnostics lines only — never drives any
+  // decision in the flow itself.
+  const startedAt = Date.now();
+  const elapsedMs = () => Date.now() - startedAt;
+
   onPhase?.("requesting");
+  log({ phase: "analysis:started", claimId });
 
   let requestError: ApiError;
   try {
     const claim = await analyze();
+    log({
+      phase: "analysis:outcome",
+      claimId,
+      target: "ok:response",
+      claimStatus: claim.status,
+      durationMs: elapsedMs(),
+    });
     return { ok: true, claim, via: "response" };
   } catch (err) {
     const immediate = classifyImmediate(err);
-    if (immediate) return { ok: false, failure: immediate };
+    if (immediate) {
+      log({
+        phase: "analysis:outcome",
+        claimId,
+        target: immediate.kind,
+        httpStatus: immediate.status,
+        durationMs: elapsedMs(),
+      });
+      return { ok: false, failure: immediate };
+    }
     requestError = err as ApiError;
+    log({
+      phase: "analysis:request_ambiguous",
+      claimId,
+      httpStatus: requestError.status,
+      errorClass: requestError.name,
+      // For status 0 the client preserves the underlying fetch rejection's
+      // name in `detail`: "AbortError" = our 90s timeout fired,
+      // "TypeError" = genuine network/connection drop.
+      abortReason: requestError.status === 0 ? (requestError.detail ?? null) : null,
+      durationMs: elapsedMs(),
+    });
   }
 
   onPhase?.("reconciling");
+  log({ phase: "analysis:reconciling_started", claimId, durationMs: elapsedMs() });
 
   const maxPolls = Math.max(1, Math.floor(pollTimeoutMs / pollIntervalMs));
   // Consecutive sightings of a claim that never entered `analyzing`: the
@@ -163,51 +203,85 @@ export async function runClaimAnalysis(options: RunClaimAnalysisOptions): Promis
       claim = await fetchClaim();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
+        log({ phase: "analysis:outcome", claimId, target: "auth", attempt: attempt + 1 });
         return { ok: false, failure: { kind: "auth", message: userFacingMessage(err), status: 401 } };
       }
       if (err instanceof ApiError && err.status === 404) {
+        log({ phase: "analysis:outcome", claimId, target: "not_found", attempt: attempt + 1 });
         return { ok: false, failure: { kind: "not_found", message: userFacingMessage(err), status: 404 } };
       }
       // Transient poll failure — the network may still be recovering.
+      log({
+        phase: "analysis:poll_error",
+        claimId,
+        attempt: attempt + 1,
+        httpStatus: err instanceof ApiError ? err.status : null,
+        errorClass: err instanceof Error ? err.name : typeof err,
+      });
       continue;
     }
 
     sawAnyClaimState = true;
+    log({ phase: "analysis:poll", claimId, attempt: attempt + 1, claimStatus: claim.status });
 
     if (COMPLETED_STATUSES.has(claim.status)) {
+      log({
+        phase: "analysis:outcome",
+        claimId,
+        target: "ok:poll",
+        claimStatus: claim.status,
+        attempt: attempt + 1,
+        durationMs: elapsedMs(),
+      });
       return { ok: true, claim, via: "poll" };
     }
     if (claim.status === "failed") {
+      log({ phase: "analysis:outcome", claimId, target: "analysis_failed", durationMs: elapsedMs() });
       return {
         ok: false,
         failure: { kind: "analysis_failed", message: ANALYSIS_FAILED_MESSAGE, status: requestError.status || null },
       };
     }
-    if (claim.status === "analyzing") {
-      notStartedSightings = 0;
+    if (claim.status === "intake") {
+      // Pre-analysis status: the analyze POST may never have started
+      // server-side (e.g. the upload itself was cut off mid-transfer).
+      notStartedSightings += 1;
+      if (notStartedSightings >= 2) {
+        log({
+          phase: "analysis:outcome",
+          claimId,
+          target: "unreachable:never_started",
+          durationMs: elapsedMs(),
+        });
+        return {
+          ok: false,
+          failure: {
+            kind: "unreachable",
+            message: UNREACHABLE_MESSAGE,
+            status: requestError.status || null,
+          },
+        };
+      }
       continue;
     }
-    // `intake` (or any pre-analysis status): the analyze POST may never
-    // have started server-side.
-    notStartedSightings += 1;
-    if (notStartedSightings >= 2) {
-      return {
-        ok: false,
-        failure: {
-          kind: "unreachable",
-          message: UNREACHABLE_MESSAGE,
-          status: requestError.status || null,
-        },
-      };
+    // "analyzing" — or a status this build doesn't know yet. An unknown
+    // status still proves the claim exists and has progressed past
+    // intake, so keep polling rather than guessing at a failure; the
+    // budget bounds how long that can last either way.
+    if (claim.status !== "analyzing") {
+      log({ phase: "analysis:unknown_status", claimId, claimStatus: claim.status, attempt: attempt + 1 });
     }
+    notStartedSightings = 0;
   }
 
   if (!sawAnyClaimState) {
+    log({ phase: "analysis:outcome", claimId, target: "unreachable:no_state", durationMs: elapsedMs() });
     return {
       ok: false,
       failure: { kind: "unreachable", message: UNREACHABLE_MESSAGE, status: requestError.status || null },
     };
   }
+  log({ phase: "analysis:outcome", claimId, target: "still_processing", durationMs: elapsedMs() });
   return {
     ok: false,
     failure: { kind: "still_processing", message: STILL_PROCESSING_MESSAGE, status: null },

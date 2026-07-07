@@ -43,6 +43,10 @@ class UserResponse(BaseModel):
     display_name: Optional[str] = None
     contact_email: Optional[str] = None
     custom_avatar_url: Optional[str] = None
+    # Legal consent tier; None means never recorded (see POST /users/consent).
+    terms_accepted_at: Optional[datetime] = None
+    privacy_accepted_at: Optional[datetime] = None
+    legal_version_accepted: Optional[str] = None
 
     @classmethod
     def from_record(cls, record: UserRecord) -> "UserResponse":
@@ -54,6 +58,9 @@ class UserResponse(BaseModel):
             display_name=record.display_name,
             contact_email=record.contact_email,
             custom_avatar_url=record.custom_avatar_url,
+            terms_accepted_at=record.terms_accepted_at,
+            privacy_accepted_at=record.privacy_accepted_at,
+            legal_version_accepted=record.legal_version_accepted,
         )
 
 
@@ -115,6 +122,18 @@ class UserProfileUpdateRequest(BaseModel):
         if not _CONTACT_EMAIL_RE.match(value):
             raise ValueError("Contact email is not a valid email address.")
         return value
+
+
+class ConsentAcceptRequest(BaseModel):
+    """POST /users/consent body. The client's reported version is never
+    what gets persisted (the backend always stamps its own
+    `CURRENT_LEGAL_VERSION`) — it's only compared against that constant
+    to catch a stale frontend build serving outdated legal copy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    terms_version: str = Field(description="Legal version the frontend displayed for Terms of Service")
+    privacy_version: str = Field(description="Legal version the frontend displayed for Privacy Policy")
 
 
 class UserSyncResponse(BaseModel):

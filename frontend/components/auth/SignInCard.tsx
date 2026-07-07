@@ -6,6 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Reveal } from "@/components/ui/Reveal";
+import { canStartGoogleSignIn } from "@/lib/auth/signInGate";
+import { markConsentGiven } from "@/lib/consent/consentSync";
+import { LEGAL_VERSION } from "@/lib/legal/version";
+import { LegalConsentCheckbox } from "./LegalConsentCheckbox";
 import { AppleIcon, FacebookIcon, GoogleIcon } from "./ProviderIcons";
 
 const DEFAULT_CALLBACK_URL = "/claims/new";
@@ -16,13 +20,26 @@ const DEFAULT_CALLBACK_URL = "/claims/new";
  * inert "Coming soon" buttons — plain `disabled` elements with no
  * `onClick`/`href`, so they can't start an OAuth request, navigate, or
  * touch the URL no matter how they're activated.
+ *
+ * The Google button is disabled until the legal consent checkbox is
+ * checked (`canStartGoogleSignIn` — see `lib/auth/signInGate.ts`); a
+ * click also records the consent locally (`markConsentGiven`) so it can
+ * be persisted server-side once the sign-in completes, see
+ * `lib/consent/consentSync.ts`.
  */
 export function SignInCard() {
   const searchParams = useSearchParams();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const callbackUrl = searchParams.get("callbackUrl") || DEFAULT_CALLBACK_URL;
+  const canSignIn = canStartGoogleSignIn(consentChecked, isRedirecting);
 
   function handleGoogleSignIn() {
+    if (!canStartGoogleSignIn(consentChecked, isRedirecting)) return;
+    markConsentGiven(window.sessionStorage, {
+      termsVersion: LEGAL_VERSION,
+      privacyVersion: LEGAL_VERSION,
+    });
     setIsRedirecting(true);
     signIn("google", { callbackUrl });
   }
@@ -49,12 +66,22 @@ export function SignInCard() {
             Continue to start or review a vehicle damage assessment.
           </p>
 
-          <div className="mt-8">
+          <div className="mt-7">
+            <LegalConsentCheckbox checked={consentChecked} onChange={setConsentChecked} />
+          </div>
+
+          <div className="mt-4">
+            <span id="google-consent-hint" className="sr-only">
+              You must accept the Terms of Service and Privacy Policy before continuing with
+              Google.
+            </span>
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={isRedirecting}
-              className="flex w-full items-center justify-center gap-3 rounded-full border border-fog bg-white px-5 py-3 text-[14px] font-medium text-carbon transition-colors hover:bg-mist disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!canSignIn}
+              aria-disabled={!canSignIn}
+              aria-describedby="google-consent-hint"
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-fog bg-white px-5 py-3 text-[14px] font-medium text-carbon transition-colors hover:enabled:bg-mist disabled:cursor-not-allowed disabled:opacity-60"
             >
               <GoogleIcon />
               {isRedirecting ? "Redirecting…" : "Continue with Google"}
@@ -73,8 +100,8 @@ export function SignInCard() {
           </div>
 
           <p className="mt-8 text-center text-[12px] leading-relaxed tracking-body text-ash">
-            By continuing, you agree this is a preliminary AI-assisted assessment, not a final
-            insurance decision.
+            ClaimSight assessments are preliminary, AI-assisted estimates — not a final insurance
+            decision.
           </p>
         </div>
       </Reveal>

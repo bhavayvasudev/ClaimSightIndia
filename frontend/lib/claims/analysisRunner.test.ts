@@ -5,10 +5,16 @@
  * commits — which must reconcile to success, never "couldn't connect".
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/errors";
 import type { ClaimResponse } from "@/lib/api/types";
 import { runClaimAnalysis, type AnalysisRunPhase } from "./analysisRunner";
+
+// The runner narrates itself via structured console.info diagnostics by
+// default (lib/claims/diagnostics.ts) — keep test output clean.
+beforeEach(() => {
+  vi.spyOn(console, "info").mockImplementation(() => {});
+});
 
 const instantSleep = () => Promise.resolve();
 
@@ -189,6 +195,37 @@ describe("runClaimAnalysis", () => {
     // One successful poll ended the run: no extra polls, no extra phases.
     expect(fetchClaim.calls()).toBe(1);
     expect(phases).toEqual(["requesting", "reconciling"]);
+  });
+
+  it("treats an unknown backend status as in-progress — logged, still polling, never a fake failure", async () => {
+    // A status this frontend build doesn't know (e.g. a newly deployed
+    // backend state) proves the claim exists and progressed; it must not
+    // trip the "never started" unreachable heuristic or end the run.
+    const unknown = "settlement_pending" as ClaimResponse["status"];
+    const logged: Array<string | null | undefined> = [];
+    const outcome = await runClaimAnalysis({
+      analyze: () => Promise.reject(networkError()),
+      fetchClaim: claimSequence([unknown, unknown, "analysis_complete"]),
+      sleep: instantSleep,
+      log: (e) => {
+        if (e.phase === "analysis:unknown_status") logged.push(e.claimStatus);
+      },
+    });
+    expect(outcome.ok).toBe(true);
+    expect(logged).toEqual(["settlement_pending", "settlement_pending"]);
+  });
+
+  it("an unknown status between intake sightings resets the never-started counter", async () => {
+    const unknown = "queued" as ClaimResponse["status"];
+    // intake → unknown → intake: never two *consecutive* intake sightings,
+    // so this must keep polling to completion instead of "unreachable".
+    const outcome = await runClaimAnalysis({
+      analyze: () => Promise.reject(networkError()),
+      fetchClaim: claimSequence(["intake", unknown, "intake", "analysis_complete"]),
+      sleep: instantSleep,
+      log: () => {},
+    });
+    expect(outcome.ok).toBe(true);
   });
 
   it("rethrows non-API errors instead of disguising bugs as connectivity problems", async () => {

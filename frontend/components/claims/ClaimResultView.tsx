@@ -4,13 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
-import { useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/ui/Reveal";
 import { PillButton } from "@/components/ui/PillButton";
 import { SignInAgainButton } from "@/components/ui/SignInAgainButton";
 import { VehiclePlaceholder } from "@/components/dashboard/ClaimCard";
+import { EASE } from "@/lib/motion";
+import { loadClaimBundle } from "@/lib/claims/resultLoader";
 import {
-  ApiError,
   downloadClaimReportPdf,
   getClaim,
   getClaimReport,
@@ -42,6 +43,13 @@ type LoadState = "loading" | "ready" | "error";
 const READINESS_POLL_INTERVAL_MS = 4_000;
 const READINESS_POLL_LIMIT = 60; // × 4s = 4 minutes
 
+// Quiet refetch cadence when the claim rendered but timeline/report were
+// briefly unavailable (a "degraded" bundle — e.g. the post-analysis
+// workflow was still committing when we arrived). Bounded: after the
+// limit the page simply keeps what it has.
+const DEGRADED_RETRY_INTERVAL_MS = 2_500;
+const DEGRADED_RETRY_LIMIT = 6;
+
 export function ClaimResultView({ claimId }: { claimId: string }) {
   const { data: session, status: sessionStatus } = useSession();
   const reducedMotion = useReducedMotion() ?? false;
@@ -55,31 +63,55 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
   // recovery UI renders below (Task 11: a real 404 and an unreachable
   // backend must never look the same).
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
+  // True when the claim rendered but timeline/report weren't ready yet —
+  // drives a bounded quiet refetch instead of a full-page error.
+  const [degraded, setDegraded] = useState(false);
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
   const [policyUploadError, setPolicyUploadError] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
-      // A silent refresh (readiness polling) must never flash the page
-      // back to the loading skeleton, and a transient failure during it
-      // must never replace an already-rendered claim with an error — the
-      // next poll simply tries again.
+      // A silent refresh (readiness/degraded polling) must never flash the
+      // page back to the loading skeleton, and a transient failure during
+      // it must never replace an already-rendered claim with an error —
+      // the next poll simply tries again.
       if (!options?.silent) setState("loading");
+      const token = session?.backendAccessToken;
       try {
-        const [claimResult, timelineResult, reportResult] = await Promise.all([
-          getClaim(claimId, session?.backendAccessToken),
-          getClaimTimeline(claimId, session?.backendAccessToken),
-          getClaimReport(claimId, session?.backendAccessToken),
-        ]);
-        setClaim(claimResult);
-        setTimeline(timelineResult.stages);
-        setReport(reportResult);
-        setState("ready");
+        // The loader retries transient failures itself (the production
+        // bug: landing here moments after a reconciled analysis, while
+        // the backend is still committing the post-analysis workflow, and
+        // turning one blip into a terminal "Connection problem"). The
+        // claim is the critical resource; timeline/report only degrade.
+        const outcome = await loadClaimBundle({
+          claimId,
+          fetchClaim: () => getClaim(claimId, token),
+          fetchTimeline: () => getClaimTimeline(claimId, token),
+          fetchReport: () => getClaimReport(claimId, token),
+          attempts: options?.silent ? 1 : undefined,
+        });
+
+        if (outcome.ok) {
+          setClaim(outcome.bundle.claim);
+          // Timeline/report only ever improve — a degraded refresh never
+          // clears data an earlier load already rendered.
+          if (outcome.bundle.timeline) setTimeline(outcome.bundle.timeline.stages);
+          if (outcome.bundle.report) setReport(outcome.bundle.report);
+          setDegraded(outcome.bundle.degraded);
+          setState("ready");
+          return;
+        }
+        if (options?.silent) return;
+        setErrorMessage(outcome.message);
+        setErrorStatus(outcome.status);
+        setState("error");
       } catch (err) {
+        // Non-ApiError = a programming error the loader deliberately
+        // rethrows; show the stock failure rather than a blank page.
         if (options?.silent) return;
         setErrorMessage(userFacingMessage(err));
-        setErrorStatus(err instanceof ApiError ? err.status : null);
+        setErrorStatus(null);
         setState("error");
       }
     },
@@ -117,6 +149,25 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
     return () => window.clearInterval(interval);
   }, [state, claim?.status, load]);
 
+  // Degraded bundle: the claim rendered but timeline/report lagged behind
+  // (typically the post-analysis workflow still committing). Refetch
+  // quietly on an interval — same shape as the readiness poll above, and
+  // for the same reason: a quiet retry that finds things unchanged doesn't
+  // alter this effect's dependencies.
+  const degradedRetries = useRef(0);
+  useEffect(() => {
+    if (state !== "ready" || !degraded) return;
+    const interval = window.setInterval(() => {
+      degradedRetries.current += 1;
+      if (degradedRetries.current > DEGRADED_RETRY_LIMIT) {
+        window.clearInterval(interval);
+        return;
+      }
+      load({ silent: true });
+    }, DEGRADED_RETRY_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [state, degraded, load]);
+
   async function handlePolicyUpload(file: File) {
     setUploadingPolicy(true);
     setPolicyUploadError(null);
@@ -151,19 +202,30 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
   }
 
   if (state === "loading") {
+    // Visually continuous with both the intake form's "Preparing your
+    // assessment report" bridge and this route's loading.tsx — arriving
+    // here from a completed analysis reads as one uninterrupted state,
+    // not a hard swap to a bare spinner.
     return (
-      <div className="mx-auto flex min-h-screen max-w-content flex-col items-center justify-center gap-4 px-6">
+      <motion.div
+        initial={reducedMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reducedMotion ? { duration: 0 } : { duration: 0.4, ease: EASE }}
+        className="mx-auto flex min-h-screen max-w-content flex-col items-center justify-center px-6"
+      >
         <span
           className={`h-5 w-5 rounded-full border-2 border-fog border-t-lavender ${
             reducedMotion ? "" : "animate-spin"
           }`}
           aria-hidden
         />
-        <div className="text-center">
-          <p className="text-[15px] font-medium tracking-body text-carbon">Loading claim</p>
-          <p className="mt-1 text-[13px] tracking-body text-ash">{claimId}</p>
+        <div className="mt-5 text-center">
+          <p className="text-[15px] font-medium tracking-body text-carbon">
+            Preparing your assessment report
+          </p>
+          <p className="mt-1.5 text-[13px] tracking-body text-ash">{claimId}</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -224,7 +286,12 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
             : "not_available";
 
   return (
-    <div className="mx-auto max-w-content px-6 pb-24 pt-32 md:px-8">
+    <motion.div
+      initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.55, ease: EASE }}
+      className="mx-auto max-w-content px-6 pb-24 pt-32 md:px-8"
+    >
       <Reveal>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -437,7 +504,7 @@ export function ClaimResultView({ claimId }: { claimId: string }) {
           <ClaimTimeline stages={timeline} />
         </Reveal>
       )}
-    </div>
+    </motion.div>
   );
 }
 

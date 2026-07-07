@@ -47,9 +47,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, init);
-  } catch {
-    // fetch throws on DNS/connection failure — there is no HTTP status yet.
-    throw new ApiError("Unable to reach the ClaimSight service.", 0);
+  } catch (err) {
+    // fetch throws on DNS/connection failure or an AbortController abort —
+    // there is no HTTP status yet. The rejection's error name ("AbortError"
+    // for our own timeout vs "TypeError" for a real network drop) is the
+    // only way to tell those apart later, so it rides along in `detail`
+    // (diagnostics only, never shown in the UI).
+    throw new ApiError(
+      "Unable to reach the ClaimSight service.",
+      0,
+      err instanceof Error ? err.name : undefined
+    );
   }
 
   if (!response.ok) {

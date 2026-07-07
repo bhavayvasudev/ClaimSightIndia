@@ -1,5 +1,22 @@
+import itertools
+import logging
+import sys
+import time
+
+# Configured before the pipeline import below: pipeline.py loads all three
+# YOLO models at import time and logs how long that took — without a root
+# handler in place first, those lines (the primary cold-start evidence in
+# the Space logs) would be dropped.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger("ai_service.main")
+
 from fastapi import Depends, FastAPI, Header, UploadFile, File, HTTPException
 
+import pipeline
 from pipeline import analyze_image
 from typing import Annotated, Optional
 from PIL import Image, UnidentifiedImageError
@@ -7,6 +24,17 @@ from PIL import Image, UnidentifiedImageError
 import io
 import tempfile
 import os
+
+SERVICE_STARTED_AT = time.time()
+# Monotonic per-process request counter: request_number=1 in the logs is
+# unambiguous proof the request hit a freshly started process (cold start /
+# restart / rebuild), independent of any timestamp math.
+_request_seq = itertools.count(1)
+
+logger.info(
+    "service_started model_load_duration_ms=%d",
+    pipeline.MODEL_LOAD_DURATION_MS,
+)
 
 # No CORSMiddleware here, deliberately: this service is called
 # server-to-server, only ever from the application backend
@@ -409,8 +437,24 @@ async def analyze_claim(
     images: Annotated[
         list[UploadFile],
         File(description="Upload multiple vehicle images")
-    ]
+    ],
+    x_request_id: Annotated[Optional[str], Header()] = None,
 ):
+
+    # Never logs filenames or image bytes — only counts, durations, and the
+    # backend-supplied correlation id.
+    request_number = next(_request_seq)
+    request_start = time.perf_counter()
+    total_inference_ms = 0
+    logger.info(
+        "request_received endpoint=/analyze-claim request_id=%s request_number=%d images=%d "
+        "process_uptime_s=%d models_loaded_ago_s=%d",
+        x_request_id or "-",
+        request_number,
+        len(images),
+        int(time.time() - SERVICE_STARTED_AT),
+        int(time.time() - pipeline.MODELS_LOADED_AT),
+    )
 
     if len(images) == 0:
 
@@ -507,8 +551,24 @@ async def analyze_claim(
                 temp_path = temp_file.name
 
 
+            inference_start = time.perf_counter()
+            logger.info(
+                "inference_started request_id=%s image_index=%d",
+                x_request_id or "-",
+                len(image_results) + len(invalid_filenames) + len(corrupted_filenames),
+            )
+
             analysis = analyze_image(
                 temp_path
+            )
+
+            inference_ms = int((time.perf_counter() - inference_start) * 1000)
+            total_inference_ms += inference_ms
+            logger.info(
+                "inference_completed request_id=%s image_index=%d duration_ms=%d",
+                x_request_id or "-",
+                len(image_results) + len(invalid_filenames) + len(corrupted_filenames),
+                inference_ms,
             )
 
 
@@ -592,6 +652,17 @@ async def analyze_claim(
 
     claim_analysis = merge_analysis_results(
         image_results
+    )
+
+
+    logger.info(
+        "request_completed endpoint=/analyze-claim request_id=%s request_number=%d "
+        "images_processed=%d total_inference_duration_ms=%d total_request_duration_ms=%d",
+        x_request_id or "-",
+        request_number,
+        len(image_results),
+        total_inference_ms,
+        int((time.perf_counter() - request_start) * 1000),
     )
 
 

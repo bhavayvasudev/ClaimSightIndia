@@ -16,6 +16,7 @@ from typing import List, Optional, Tuple
 import httpx
 
 from app.config import get_settings
+from app.observability.context import get_request_id
 from app.observability.timing import timed_block
 
 
@@ -79,6 +80,11 @@ class AIServiceClient:
         # — an optional defense-in-depth layer on top of network isolation,
         # never required for local development.
         headers = {"X-Internal-Service-Token": self._shared_secret} if self._shared_secret else {}
+        # Correlation id, not a secret: lets one ai-service log line be tied
+        # to the exact backend request (and therefore claim) that caused it.
+        request_id = get_request_id()
+        if request_id:
+            headers["X-Request-ID"] = request_id
 
         try:
             async with timed_block("ai_service_analyze_claim"):
